@@ -1,6 +1,10 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const url = require('url');
+const { initialize, enable } = require('@electron/remote/main');
+
+// Inicializar @electron/remote
+initialize();
 
 // Mantener una referencia global del objeto window para evitar que la ventana 
 // se cierre automáticamente cuando el objeto JavaScript es recolectado por el GC.
@@ -17,7 +21,8 @@ function createWindow() {
     minHeight: 768,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: true, // Activado para seguridad
+      enableRemoteModule: true, // Habilitamos el módulo remote
       preload: path.join(__dirname, 'preload.js')
     },
     // Configuraciones adicionales para una mejor apariencia
@@ -25,6 +30,9 @@ function createWindow() {
     backgroundColor: '#2e2c29',
     autoHideMenuBar: true // Ocultar la barra de menú por defecto
   });
+
+  // Habilitar @electron/remote para esta ventana
+  enable(mainWindow.webContents);
 
   // Determinar la URL a cargar
   const startUrl = process.env.ELECTRON_START_URL || url.format({

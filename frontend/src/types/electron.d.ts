@@ -45,10 +45,43 @@ declare module '@plick/electron-pos-printer' {
 declare global {
   interface Window {
     printerAPI: {
-      printReceipt: (ticket: any) => Promise<{success: boolean, error?: string}>;
-      getPrinters: () => Promise<{success: boolean, printers: {name: string, isDefault: boolean}[], error?: string}>;
-      getPrinterConfig: () => Promise<{success: boolean, config?: any, error?: string}>;
-      savePrinterConfig: (config: any) => Promise<{success: boolean, error?: string}>;
+      getPrinters: () => Promise<{
+        success: boolean;
+        printers: { name: string; isDefault: boolean }[];
+        error?: string;
+      }>;
+      getPrinterConfig: () => Promise<{
+        success: boolean;
+        config?: PrinterConfig;
+        error?: string;
+      }>;
+      savePrinterConfig: (config: PrinterConfig) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+      printReceipt: (ticket: TicketContent) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
     }
   }
+}
+
+interface PrinterConfig {
+  width: string;
+  margin: string;
+  printerName: string;
+  preview: boolean;
+  silent: boolean;
+  copies: number;
+  timeOutPerLine: number;
+}
+
+interface TicketContent {
+  header?: string;
+  lines: string[];
+  qr?: string;
+  barcode?: string;
+  total?: string;
+  footer?: string;
 } 

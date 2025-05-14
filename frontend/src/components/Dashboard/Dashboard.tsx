@@ -47,6 +47,7 @@ import {
   HealthAndSafety as HealthAndSafetyIcon,
   Category as CategoryIcon,
   Notifications as NotificationsIcon,
+  Print as PrintIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import Usuarios from '../Usuarios/Usuarios';
@@ -87,6 +88,7 @@ import NotificacionesMenu from '../Notificaciones/NotificacionesMenu';
 import NotificacionesPage from '../../pages/Notificaciones/NotificacionesPage';
 import TestNotificaciones from '../../pages/Notificaciones/TestNotificaciones';
 import GestionNotificaciones from '../Configuracion/GestionNotificaciones';
+import ImpresorasTermicas from '../Configuracion/ImpresorasTermicas';
 
 // Definir interfaz para elementos del menú
 interface SubMenuItem {
@@ -446,6 +448,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
           text: 'Notificaciones', 
           icon: <NotificationsIcon />,
           path: 'gestion-notificaciones',
+          requiredModule: 'CONFIGURACION', 
+          requiredAction: 'USUARIOS'
+        },
+        { 
+          text: 'Impresoras Térmicas', 
+          icon: <PrintIcon />,
+          path: 'impresoras-termicas',
           requiredModule: 'CONFIGURACION', 
           requiredAction: 'USUARIOS'
         }
@@ -820,6 +829,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
           } />
           <Route path="gestion-notificaciones" element={
             hasPermission('CONFIGURACION', 'USUARIOS') ? <GestionNotificaciones /> : <Navigate to="acceso-denegado" />
+          } />
+          <Route path="impresoras-termicas" element={
+            hasPermission('CONFIGURACION', 'USUARIOS') ? <ImpresorasTermicas /> : <Navigate to="acceso-denegado" />
           } />
           <Route path="controles/gastos" element={
             hasPermission('PDV', 'CONTROL_CAJAS') ? <GestionGastos /> : <Navigate to="acceso-denegado" />

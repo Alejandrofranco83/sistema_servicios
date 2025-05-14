@@ -12,12 +12,12 @@
   "dependencies": {
     "@electron/remote": "^2.1.2",
     "@mui/icons-material": "^7.1.0",
-    "@plick/electron-pos-printer": "^1.3.0",
     "@types/react-swipeable-views": "^0.13.6",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^16.0.3",
+    "electron-pos-printer": "^1.3.6",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",
     "notistack": "^3.0.2",
