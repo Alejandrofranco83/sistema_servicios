@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -110,6 +110,7 @@ const Maletines: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { sucursalActual } = useSucursal();
+  const codigoMaletinRef = useRef<HTMLInputElement>(null); // Ref for Codigo Maletin input
 
   // Cargar maletines y sucursales al iniciar
   useEffect(() => {
@@ -402,6 +403,13 @@ const Maletines: React.FC = () => {
         onClose={handleCloseDialog}
         maxWidth="sm"
         fullWidth
+        TransitionProps={{
+          onEntered: () => {
+            if (!editingId && codigoMaletinRef.current) {
+              codigoMaletinRef.current.focus();
+            }
+          }
+        }}
       >
         <DialogTitle>
           {editingId ? 'EDITAR MALETÍN' : 'AGREGAR NUEVO MALETÍN'}
@@ -426,6 +434,7 @@ const Maletines: React.FC = () => {
                   autoComplete="off"
                   error={formData.codigo.length > 0 && formData.codigo.length !== 4}
                   helperText={formData.codigo.length > 0 && formData.codigo.length !== 4 ? "El código debe tener exactamente 4 dígitos" : ""}
+                  inputRef={codigoMaletinRef}
                 />
               </Grid>
               <Grid item xs={12}>

@@ -186,7 +186,7 @@ const FormRetiro: React.FC<FormRetiroProps> = ({ open, onClose }) => {
                   onClick={handleInputClick}
                   onKeyDown={(e) => handleKeyDown(e, 'montoBRL')}
                   InputProps={{
-                    startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>₲</Typography>,
+                    startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>G$</Typography>,
                   }}
                   size="small"
                   sx={{ 
@@ -208,48 +208,32 @@ const FormRetiro: React.FC<FormRetiroProps> = ({ open, onClose }) => {
                   value={formRetiro.montoBRL}
                   autoComplete="off"
                   onChange={(e) => {
-                    let input = e.target.value;
-                    
-                    // Permitir solo números, puntos y una coma
-                    input = input.replace(/[^\d.,]/g, '');
-                    
-                    // Manejar el caso donde el usuario ingresa una coma
-                    if (input.includes(',')) {
-                      const parts = input.split(',');
-                      if (parts.length > 2) {
-                        // Si hay más de una coma, nos quedamos con la primera
-                        input = parts[0] + ',' + parts.slice(1).join('');
-                      }
-                      
-                      // Limitar a 2 decimales
-                      if (parts[1] && parts[1].length > 2) {
-                        parts[1] = parts[1].substring(0, 2);
-                        input = parts[0] + ',' + parts[1];
-                      }
-                      
-                      // Quitar todos los puntos de separador de miles de la parte entera
-                      const entero = parts[0].replace(/\./g, '');
-                      
-                      // Formatear la parte entera con separador de miles
-                      let enteroFormateado = '';
-                      if (entero) {
-                        enteroFormateado = Number(entero).toLocaleString('es-PY').split(',')[0];
-                      }
-                      
-                      // Reconstruir con la parte decimal
-                      input = enteroFormateado + ',' + parts[1];
-                    } else {
-                      // Si no hay coma, es solo parte entera
-                      // Quitar todos los puntos y formatear
-                      const entero = input.replace(/\./g, '');
-                      if (entero) {
-                        input = Number(entero).toLocaleString('es-PY');
-                      }
+                    // Para reales: formato con punto para miles y coma para decimales
+                    const numericValue = e.target.value.replace(/\D/g, '');
+                    if (numericValue === '') {
+                      setFormRetiro(prev => ({
+                        ...prev,
+                        montoBRL: ''
+                      }));
+                      return;
                     }
+                    
+                    // Asegurar que tengamos al menos 3 dígitos para tener formato con decimales
+                    const paddedValue = numericValue.padStart(3, '0');
+                    
+                    // Separar enteros y decimales
+                    const decimalPart = paddedValue.slice(-2);
+                    const integerPart = paddedValue.slice(0, -2).replace(/^0+/, '') || '0'; // Quitar ceros iniciales
+                    
+                    // Formatear la parte entera con puntos para los miles
+                    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    
+                    // Formar el valor final con formato brasileño
+                    const formattedValue = `${formattedInteger},${decimalPart}`;
                     
                     setFormRetiro(prev => ({
                       ...prev,
-                      montoBRL: input
+                      montoBRL: formattedValue
                     }));
                   }}
                   onClick={handleInputClick}
@@ -277,54 +261,38 @@ const FormRetiro: React.FC<FormRetiroProps> = ({ open, onClose }) => {
                   value={formRetiro.montoUSD}
                   autoComplete="off"
                   onChange={(e) => {
-                    let input = e.target.value;
-                    
-                    // Permitir solo números, puntos y una coma
-                    input = input.replace(/[^\d.,]/g, '');
-                    
-                    // Manejar el caso donde el usuario ingresa una coma
-                    if (input.includes(',')) {
-                      const parts = input.split(',');
-                      if (parts.length > 2) {
-                        // Si hay más de una coma, nos quedamos con la primera
-                        input = parts[0] + ',' + parts.slice(1).join('');
-                      }
-                      
-                      // Limitar a 2 decimales
-                      if (parts[1] && parts[1].length > 2) {
-                        parts[1] = parts[1].substring(0, 2);
-                        input = parts[0] + ',' + parts[1];
-                      }
-                      
-                      // Quitar todos los puntos de separador de miles de la parte entera
-                      const entero = parts[0].replace(/\./g, '');
-                      
-                      // Formatear la parte entera con separador de miles
-                      let enteroFormateado = '';
-                      if (entero) {
-                        enteroFormateado = Number(entero).toLocaleString('es-PY').split(',')[0];
-                      }
-                      
-                      // Reconstruir con la parte decimal
-                      input = enteroFormateado + ',' + parts[1];
-                    } else {
-                      // Si no hay coma, es solo parte entera
-                      // Quitar todos los puntos y formatear
-                      const entero = input.replace(/\./g, '');
-                      if (entero) {
-                        input = Number(entero).toLocaleString('es-PY');
-                      }
+                    // Para dólares: formato con coma para miles y punto para decimales
+                    const numericValue = e.target.value.replace(/\D/g, '');
+                    if (numericValue === '') {
+                      setFormRetiro(prev => ({
+                        ...prev,
+                        montoUSD: ''
+                      }));
+                      return;
                     }
+                    
+                    // Asegurar que tengamos al menos 3 dígitos para tener formato con decimales
+                    const paddedValue = numericValue.padStart(3, '0');
+                    
+                    // Separar enteros y decimales
+                    const decimalPart = paddedValue.slice(-2);
+                    const integerPart = paddedValue.slice(0, -2).replace(/^0+/, '') || '0'; // Quitar ceros iniciales
+                    
+                    // Formatear la parte entera con comas para los miles (formato USA)
+                    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                    
+                    // Formar el valor final con formato USA
+                    const formattedValue = `${formattedInteger}.${decimalPart}`;
                     
                     setFormRetiro(prev => ({
                       ...prev,
-                      montoUSD: input
+                      montoUSD: formattedValue
                     }));
                   }}
                   onClick={handleInputClick}
                   onKeyDown={(e) => handleKeyDown(e, 'busquedaPersona')}
                   InputProps={{
-                    startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>US$</Typography>,
+                    startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>U$D</Typography>,
                   }}
                   size="small"
                   sx={{ 

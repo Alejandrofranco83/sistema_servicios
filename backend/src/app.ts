@@ -25,6 +25,7 @@ import configuracionRoutes from './routes/configuracion.routes';
 import carouselRoutes from './routes/carousel.routes';
 import rrhhRoutes from './routes/rrhhRoutes';
 import ipsRoutes from './routes/ips.routes';
+import notificacionRoutes from './routes/notificacion.routes';
 
 const app = express();
 
@@ -78,6 +79,9 @@ app.use('/api/rrhh', rrhhRoutes);
 
 // Registrar las rutas IPS
 app.use('/api/ips', ipsRoutes);
+
+// Registrar las rutas de notificaciones
+app.use('/api/notificaciones', notificacionRoutes);
 
 // Middleware para imprimir cada solicitud que llega
 app.use((req, res, next) => {

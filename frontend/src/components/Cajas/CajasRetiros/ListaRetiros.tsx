@@ -106,19 +106,19 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ open, onClose, retiro, ca
             
             {retiro.montoPYG > 0 && (
               <Typography variant="body2">
-                GUARANÍES: {formatearMontoConSeparadores(retiro.montoPYG)} ₲
+                GUARANÍES: {formatearMontoConSeparadores(retiro.montoPYG)} G$
               </Typography>
             )}
             
             {retiro.montoBRL > 0 && (
               <Typography variant="body2">
-                REALES: R$ {new Intl.NumberFormat('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoBRL)}
+                REALES: R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoBRL)}
               </Typography>
             )}
             
             {retiro.montoUSD > 0 && (
               <Typography variant="body2">
-                DÓLARES: US$ {new Intl.NumberFormat('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoUSD)}
+                DÓLARES: U$D {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoUSD)}
               </Typography>
             )}
           </Box>
@@ -195,11 +195,20 @@ const ListaRetiros: React.FC<ListaRetirosProps> = ({ open, onClose }) => {
   };
 
   // Función para formatear montos de reales y dólares
-  const formatearMontoDecimal = (monto: number) => {
-    return new Intl.NumberFormat('es-PY', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    }).format(monto);
+  const formatearMontoDecimal = (monto: number, moneda: 'BRL' | 'USD') => {
+    if (moneda === 'BRL') {
+      // Formato brasileño: punto para miles, coma para decimales
+      return new Intl.NumberFormat('pt-BR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).format(monto);
+    } else {
+      // Formato estadounidense: coma para miles, punto para decimales
+      return new Intl.NumberFormat('en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).format(monto);
+    }
   };
 
   return (
@@ -275,13 +284,13 @@ const ListaRetiros: React.FC<ListaRetirosProps> = ({ open, onClose }) => {
                         )}
                       </TableCell>
                       <TableCell align="right" sx={{ color: 'white' }}>
-                        {retiro.montoPYG > 0 ? `${formatearMontoConSeparadores(retiro.montoPYG)} ₲` : '-'}
+                        {retiro.montoPYG > 0 ? `${formatearMontoConSeparadores(retiro.montoPYG)} G$` : '-'}
                       </TableCell>
                       <TableCell align="right" sx={{ color: 'white' }}>
-                        {retiro.montoBRL > 0 ? `R$ ${formatearMontoDecimal(retiro.montoBRL)}` : '-'}
+                        {retiro.montoBRL > 0 ? `R$ ${formatearMontoDecimal(retiro.montoBRL, 'BRL')}` : '-'}
                       </TableCell>
                       <TableCell align="right" sx={{ color: 'white' }}>
-                        {retiro.montoUSD > 0 ? `US$ ${formatearMontoDecimal(retiro.montoUSD)}` : '-'}
+                        {retiro.montoUSD > 0 ? `U$D ${formatearMontoDecimal(retiro.montoUSD, 'USD')}` : '-'}
                       </TableCell>
                       <TableCell sx={{ color: 'white' }}>{retiro.observacion}</TableCell>
                       <TableCell align="center">

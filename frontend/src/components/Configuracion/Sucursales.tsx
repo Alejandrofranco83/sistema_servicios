@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -49,6 +49,8 @@ const Sucursales: React.FC = () => {
 
   const { sucursalActual, setSucursal } = useSucursal();
   const { user } = useAuth();
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const nombreSucursalRef = useRef<HTMLInputElement>(null);
 
   // Estado para el formulario
   const [formData, setFormData] = useState<Omit<Sucursal, 'id'>>({
@@ -103,6 +105,33 @@ const Sucursales: React.FC = () => {
   // Seleccionar texto al hacer focus
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
+  };
+
+  // Manejar navegación con Enter
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter' && !(event.target instanceof HTMLTextAreaElement)) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const focusableElements = Array.from(
+        form.querySelectorAll('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])')
+      ).filter(el => {
+        const style = window.getComputedStyle(el as HTMLElement);
+        return (el as HTMLElement).offsetParent !== null && style.display !== 'none' && style.visibility !== 'hidden';
+      }) as HTMLElement[];
+
+      const currentFocusedIndex = focusableElements.findIndex(el => el === document.activeElement);
+
+      if (currentFocusedIndex !== -1 && currentFocusedIndex < focusableElements.length - 1) {
+        const nextElement = focusableElements[currentFocusedIndex + 1];
+        nextElement?.focus();
+      } else if (currentFocusedIndex === focusableElements.length - 2) { // Assuming Cancel is before Submit
+        const submitBtn = submitButtonRef.current;
+        if (submitBtn && !submitBtn.disabled) {
+          submitBtn.focus();
+        }
+      }
+    }
   };
 
   // Abrir diálogo para crear una nueva sucursal
@@ -404,11 +433,23 @@ const Sucursales: React.FC = () => {
       )}
 
       {/* Diálogo para crear/editar sucursal */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={dialogOpen} 
+        onClose={() => setDialogOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+        TransitionProps={{ 
+          onEntered: () => {
+            if (!editingSucursal && nombreSucursalRef.current) {
+              nombreSucursalRef.current.focus();
+            }
+          }
+        }}
+      >
         <DialogTitle>
           {editingSucursal ? `Editar Sucursal: ${editingSucursal.nombre}` : 'Nueva Sucursal'}
         </DialogTitle>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
           <DialogContent>
             <TextField
               name="nombre"
@@ -421,6 +462,7 @@ const Sucursales: React.FC = () => {
               required
               autoComplete="off"
               onFocus={handleFocus}
+              inputRef={nombreSucursalRef}
             />
             
             <TextField
@@ -484,6 +526,7 @@ const Sucursales: React.FC = () => {
               color="primary" 
               variant="contained"
               disabled={!formData.nombre || !formData.codigo || !formData.direccion || !formData.telefono || loading}
+              ref={submitButtonRef}
             >
               {loading ? <CircularProgress size={24} /> : (editingSucursal ? 'Actualizar' : 'Crear')}
             </Button>

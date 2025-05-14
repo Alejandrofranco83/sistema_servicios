@@ -28,7 +28,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Collapse
 } from '@mui/material';
 import { 
   CheckCircle as CheckCircleIcon, 
@@ -361,23 +362,22 @@ const RecibirRetiros: React.FC<RecibirRetirosProps> = ({ open, onClose, onGuarda
       // Enviar solicitud a la API para recibir los retiros seleccionados
       const response = await axios.post('/api/cajas-mayor/retiros/recibir', dataToSend);
       
-      // Llamar a la función de refresco del componente padre
-      onGuardarExito();
-      
       // Mostrar mensaje de éxito
-      setSuccessMessage(response.data.message);
+      setSuccessMessage(response.data.message || 'Retiros recibidos correctamente');
       
       // Limpiar selección
       setRetirosSeleccionados([]);
       setObservacionRecepcion('');
       
-      // Recargar la lista de retiros pendientes (ya no es necesario aquí si onGuardarExito la recarga)
-      // await cargarRetirosPendientes(); // Comentar o eliminar esta línea si onGuardarExito la recarga
+      // Recargar la lista de retiros pendientes
+      await cargarRetirosPendientes();
       
-      // Limpiar mensaje después de 3 segundos
+      // Esperar 2 segundos antes de cerrar o llamar a onGuardarExito
       setTimeout(() => {
         setSuccessMessage(null);
-      }, 3000);
+        // Llamar a la función de refresco del componente padre
+        onGuardarExito();
+      }, 2000);
       
     } catch (error) {
       setError('Error al procesar los retiros. Intente nuevamente.');
@@ -604,7 +604,7 @@ const RecibirRetiros: React.FC<RecibirRetirosProps> = ({ open, onClose, onGuarda
                   </Table>
                 </TableContainer>
                 
-                {retiroSeleccionados.length > 0 && (
+                <Collapse in={retiroSeleccionados.length > 0} timeout={500}>
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Confirmar recepción de {retiroSeleccionados.length} {retiroSeleccionados.length === 1 ? 'retiro' : 'retiros'}
@@ -617,9 +617,10 @@ const RecibirRetiros: React.FC<RecibirRetirosProps> = ({ open, onClose, onGuarda
                       value={observacionRecepcion}
                       onChange={handleInputChange}
                       margin="normal"
+                      autoFocus
                     />
                   </Box>
-                )}
+                </Collapse>
               </>
             ) : (
               <Alert severity="info">

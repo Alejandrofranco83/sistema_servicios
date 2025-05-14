@@ -24,7 +24,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  CssBaseline,
+  GlobalStyles
 } from '@mui/material';
 import { 
   TrendingUp as TrendingUpIcon, 
@@ -203,6 +205,28 @@ const formatOrError = (value: number | undefined | null, moneda: TipoMoneda | 'g
         return value.toString();
     }
 }
+
+// Definir estilos globales para scrollbar
+const scrollbarStyles = {
+  // Para WebKit (Chrome, Safari, Edge)
+  '&::-webkit-scrollbar': {
+    width: '12px',
+    height: '12px',
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: '#121212', // Casi negro
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: '#333', // Gris muy oscuro
+    borderRadius: '6px',
+    '&:hover': {
+      backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+    },
+  },
+  // Para Firefox
+  scrollbarColor: '#333 #121212', // Formato: thumb track
+  scrollbarWidth: 'thin',
+};
 
 const Balance: React.FC = () => {
   const navigate = useNavigate();
@@ -845,587 +869,645 @@ const Balance: React.FC = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5">
-          Balance de Caja Mayor
-        </Typography>
-        
-        {/* Botones de acciones */}
-        <ButtonGroup variant="outlined" size="small">
-          <Button 
-            startIcon={<ArrowDownwardIcon />}
-            onClick={handleRecibirRetiros}
-          >
-            Recibir Retiros
-          </Button>
-          <Button 
-            startIcon={<PaymentIcon />}
-            onClick={handlePagosServicios}
-          >
-            Pagos de Servicios
-          </Button>
-          <Button 
-            startIcon={<BankIcon />}
-            onClick={handleDeposito}
-          >
-            Depósito
-          </Button>
-          <Button 
-            startIcon={<SwapHorizIcon />}
-            onClick={handleUsoDevolucion}
-          >
-            Uso/Devolución
-          </Button>
-          <Button 
-            startIcon={<CompareArrowsIcon />}
-            onClick={handleCambioMoneda}
-          >
-            Cambio
-          </Button>
-          <Button 
-            startIcon={<ReceiptIcon />}
-            onClick={handleVales}
-          >
-            Vales
-          </Button>
-        </ButtonGroup>
-      </Box>
-
-      {verificandoEstadoVale && 
-        <Alert severity="info" sx={{ mb: 2 }}>Verificando estado del vale...</Alert>
-      }
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {loadingSaldos ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-          <CircularProgress />
+      {/* Aplicar estilos globales de scrollbar a TODA la aplicación */}
+      <GlobalStyles
+        styles={{
+          '*::-webkit-scrollbar': {
+            width: '12px',
+            height: '12px',
+          },
+          '*::-webkit-scrollbar-track': {
+            backgroundColor: '#121212', // Casi negro
+          },
+          '*::-webkit-scrollbar-thumb': {
+            backgroundColor: '#333', // Gris muy oscuro
+            borderRadius: '6px',
+            '&:hover': {
+              backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+            },
+          },
+          'html': {
+            scrollbarColor: '#333 #121212', // Formato: thumb track
+            scrollbarWidth: 'thin',
+          },
+          'body': {
+            scrollbarColor: '#333 #121212',
+            scrollbarWidth: 'thin',
+          }
+        }}
+      />
+      
+      {/* Resto del contenido con el Box que envuelve todo */}
+      <Box sx={{ 
+        '& .MuiTableContainer-root, & .MuiDialog-paper, & *': scrollbarStyles,
+        height: '100%'
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5">
+            Balance de Caja Mayor
+          </Typography>
+          
+          {/* Botones de acciones */}
+          <ButtonGroup variant="outlined" size="small">
+            <Button 
+              startIcon={<ArrowDownwardIcon />}
+              onClick={handleRecibirRetiros}
+            >
+              Recibir Retiros
+            </Button>
+            <Button 
+              startIcon={<PaymentIcon />}
+              onClick={handlePagosServicios}
+            >
+              Pagos de Servicios
+            </Button>
+            <Button 
+              startIcon={<BankIcon />}
+              onClick={handleDeposito}
+            >
+              Depósito
+            </Button>
+            <Button 
+              startIcon={<SwapHorizIcon />}
+              onClick={handleUsoDevolucion}
+            >
+              Uso/Devolución
+            </Button>
+            <Button 
+              startIcon={<CompareArrowsIcon />}
+              onClick={handleCambioMoneda}
+            >
+              Cambio
+            </Button>
+            <Button 
+              startIcon={<ReceiptIcon />}
+              onClick={handleVales}
+            >
+              Vales
+            </Button>
+          </ButtonGroup>
         </Box>
-      ) : (
-        <>
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={4}>
-              <Paper sx={{ p: 1.5, height: '100%', bgcolor: 'background.paper' }}>
-                <Box display="flex" justifyContent="space-between">
-                  <Box>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Cotización Vigente
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography variant="body2">
-                        Dólar: {cotizacionVigente ? formatCurrency.guaranies(cotizacionVigente.valorDolar) : 'No disponible'}
+
+        {verificandoEstadoVale && 
+          <Alert severity="info" sx={{ mb: 2 }}>Verificando estado del vale...</Alert>
+        }
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        {loadingSaldos ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={4}>
+                <Paper sx={{ p: 1.5, height: '100%', bgcolor: 'background.paper' }}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Cotización Vigente
                       </Typography>
-                      <Typography variant="body2">
-                        Real: {cotizacionVigente ? formatCurrency.guaranies(cotizacionVigente.valorReal) : 'No disponible'}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                      Cambio Alberdi
-                      {cambioAlberdiCotizacion.loading && (
-                        <CircularProgress 
-                          size={16} 
-                          sx={{ ml: 1 }} 
-                        />
-                      )}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {cambioAlberdiCotizacion.error ? (
-                        <Alert severity="error" sx={{ py: 0, fontSize: '0.75rem' }}>
-                          No se pudo obtener la cotización
-                        </Alert>
-                      ) : (
-                        <>
-                          <Typography variant="body2">
-                            Dólar: {formatCurrency.guaranies(cambioAlberdiCotizacion.dolar.compra)} / {formatCurrency.guaranies(cambioAlberdiCotizacion.dolar.venta)}
-                          </Typography>
-                          <Typography variant="body2">
-                            Real: {formatCurrency.guaranies(cambioAlberdiCotizacion.real.compra)} / {formatCurrency.guaranies(cambioAlberdiCotizacion.real.venta)}
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                    {cambioAlberdiCotizacion.lastUpdate && !cambioAlberdiCotizacion.error && (
-                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>
-                        Actualizado: {cambioAlberdiCotizacion.lastUpdate.toLocaleDateString('es-PY')} {cambioAlberdiCotizacion.lastUpdate.toLocaleTimeString('es-PY')}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={8}>
-              <Paper sx={{ p: 1.5, height: '100%', bgcolor: 'background.paper' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' /* Align items at the start vertically */ }}>
-                  {/* Saldo Total a la izquierda */}
-                  <Box>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Saldo Total (Equivalente en Guaraníes)
-                    </Typography>
-                    <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                      {formatCurrency.guaranies(calcularSaldoTotalEnGuaranies())}
-                    </Typography>
-                  </Box>
-                  
-                  {/* Ingresos y Egresos a la derecha */}
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', pt: 0.5 /* Ajustar padding top si es necesario */ }}>
-                    {/* Ingresos */}
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                        <TrendingUpIcon fontSize="small" color="success" sx={{ mr: 0.5 }} />
-                        <Typography variant="caption">
-                          Ingresos Mes ({monedaActiva === 'guaranies' ? 'Gs' : monedaActiva === 'dolares' ? '$' : 'R$'})
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="body2">
+                          Dólar: {cotizacionVigente ? formatCurrency.guaranies(cotizacionVigente.valorDolar) : 'No disponible'}
+                        </Typography>
+                        <Typography variant="body2">
+                          Real: {cotizacionVigente ? formatCurrency.guaranies(cotizacionVigente.valorReal) : 'No disponible'}
                         </Typography>
                       </Box>
-                      <Typography variant="body2" component="div" sx={{ fontWeight: 'medium', color: 'success.main' }}>
-                        {formatearValor(ingresosEgresosMes.ingresos[monedaActiva])}
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                        Cambio Alberdi
+                        {cambioAlberdiCotizacion.loading && (
+                          <CircularProgress 
+                            size={16} 
+                            sx={{ ml: 1 }} 
+                          />
+                        )}
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {cambioAlberdiCotizacion.error ? (
+                          <Alert severity="error" sx={{ py: 0, fontSize: '0.75rem' }}>
+                            No se pudo obtener la cotización
+                          </Alert>
+                        ) : (
+                          <>
+                            <Typography variant="body2">
+                              Dólar: {formatCurrency.guaranies(cambioAlberdiCotizacion.dolar.compra)} / {formatCurrency.guaranies(cambioAlberdiCotizacion.dolar.venta)}
+                            </Typography>
+                            <Typography variant="body2">
+                              Real: {formatCurrency.guaranies(cambioAlberdiCotizacion.real.compra)} / {formatCurrency.guaranies(cambioAlberdiCotizacion.real.venta)}
+                            </Typography>
+                          </>
+                        )}
+                      </Box>
+                      {cambioAlberdiCotizacion.lastUpdate && !cambioAlberdiCotizacion.error && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>
+                          Actualizado: {cambioAlberdiCotizacion.lastUpdate.toLocaleDateString('es-PY')} {cambioAlberdiCotizacion.lastUpdate.toLocaleTimeString('es-PY')}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Paper sx={{ p: 1.5, height: '100%', bgcolor: 'background.paper' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' /* Align items at the start vertically */ }}>
+                    {/* Saldo Total a la izquierda */}
+                    <Box>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Saldo Total (Equivalente en Guaraníes)
+                      </Typography>
+                      <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        {formatCurrency.guaranies(calcularSaldoTotalEnGuaranies())}
                       </Typography>
                     </Box>
-                    {/* Egresos */}
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                        <TrendingDownIcon fontSize="small" color="error" sx={{ mr: 0.5 }} />
-                        <Typography variant="caption">
-                          Egresos Mes ({monedaActiva === 'guaranies' ? 'Gs' : monedaActiva === 'dolares' ? '$' : 'R$'})
+                    
+                    {/* Ingresos y Egresos a la derecha */}
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', pt: 0.5 /* Ajustar padding top si es necesario */ }}>
+                      {/* Ingresos */}
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+                          <TrendingUpIcon fontSize="small" color="success" sx={{ mr: 0.5 }} />
+                          <Typography variant="caption">
+                            Ingresos Mes ({monedaActiva === 'guaranies' ? 'Gs' : monedaActiva === 'dolares' ? '$' : 'R$'})
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" component="div" sx={{ fontWeight: 'medium', color: 'success.main' }}>
+                          {formatearValor(ingresosEgresosMes.ingresos[monedaActiva])}
                         </Typography>
                       </Box>
-                      <Typography variant="body2" component="div" sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                        {formatearValor(ingresosEgresosMes.egresos[monedaActiva])}
-                      </Typography>
+                      {/* Egresos */}
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+                          <TrendingDownIcon fontSize="small" color="error" sx={{ mr: 0.5 }} />
+                          <Typography variant="caption">
+                            Egresos Mes ({monedaActiva === 'guaranies' ? 'Gs' : monedaActiva === 'dolares' ? '$' : 'R$'})
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" component="div" sx={{ fontWeight: 'medium', color: 'error.main' }}>
+                          {formatearValor(ingresosEgresosMes.egresos[monedaActiva])}
+                        </Typography>
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
-              </Paper>
+                </Paper>
+              </Grid>
             </Grid>
-          </Grid>
 
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            {/* Saldo Guaraníes */}
-            <Grid item xs={12} md={4}>
-              <Paper 
-                elevation={monedaActiva === 'guaranies' ? 4 : 1} 
-                sx={{ 
-                  p: 1.5, 
-                  height: '100%', 
-                  bgcolor: monedaActiva === 'guaranies' ? 'action.hover' : 'background.paper',
-                  border: monedaActiva === 'guaranies' ? (theme) => `2px solid ${theme.palette.primary.main}` : 'none',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s, border 0.3s, box-shadow 0.3s',
-                  '&:hover': {
-                    bgcolor: 'action.hover'
-                  }
-                }}
-                onClick={() => setMonedaActiva('guaranies')}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <GuaraniesIcon />
-                    <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                      Saldo en Guaraníes
-                    </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              {/* Saldo Guaraníes */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={monedaActiva === 'guaranies' ? 8 : 2}
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    height: 140,
+                    bgcolor: 'rgba(33, 150, 243, 0.12)', // Azul claro
+                    color: (theme) => theme.palette.primary.main,
+                    borderRadius: 2,
+                    borderLeft: (theme) => `4px solid ${theme.palette.primary.main}`,
+                    transition: 'transform 0.2s',
+                    boxShadow: (theme) => (monedaActiva === 'guaranies' ? theme.shadows[8] : theme.shadows[2]),
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: (theme) => theme.shadows[8],
+                      cursor: 'pointer'
+                    }
+                  }}
+                  onClick={() => setMonedaActiva('guaranies')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between', width: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <GuaraniesIcon />
+                      <Typography variant="subtitle1" sx={{ ml: 1 }}>
+                        Saldo en Guaraníes
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleConteoGuaranies(); }}
+                      title="Conteo de Guaraníes"
+                    >
+                      <CalculateIcon fontSize="small" />
+                    </IconButton>
                   </Box>
-                  <IconButton 
-                    size="small" 
-                    onClick={(e) => { e.stopPropagation(); handleConteoGuaranies(); }} // Evitar que el click se propague al Paper
-                    title="Conteo de Guaraníes"
-                  >
-                    <CalculateIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  {formatCurrency.guaranies(saldosData.guaranies)}
-                </Typography>
-              </Paper>
-            </Grid>
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', width: '100%' }}>
+                    {formatCurrency.guaranies(saldosData.guaranies)}
+                  </Typography>
+                </Paper>
+              </Grid>
 
-            {/* Saldo Reales */}
-            <Grid item xs={12} md={4}>
-              <Paper 
-                elevation={monedaActiva === 'reales' ? 4 : 1}
-                sx={{ 
-                  p: 1.5, 
-                  height: '100%', 
-                  bgcolor: monedaActiva === 'reales' ? 'action.hover' : 'background.paper',
-                  border: monedaActiva === 'reales' ? (theme) => `2px solid ${theme.palette.primary.main}` : 'none',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s, border 0.3s, box-shadow 0.3s',
-                  '&:hover': {
-                    bgcolor: 'action.hover'
-                  }
-                }}
-                onClick={() => setMonedaActiva('reales')}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <RealesIcon />
-                    <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                      Saldo en Reales
-                    </Typography>
+              {/* Saldo Reales */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={monedaActiva === 'reales' ? 8 : 2}
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    height: 140,
+                    bgcolor: 'rgba(76, 175, 80, 0.12)', // Verde claro
+                    color: (theme) => theme.palette.success.main,
+                    borderRadius: 2,
+                    borderLeft: (theme) => `4px solid ${theme.palette.success.main}`,
+                    transition: 'transform 0.2s',
+                    boxShadow: (theme) => (monedaActiva === 'reales' ? theme.shadows[8] : theme.shadows[2]),
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: (theme) => theme.shadows[8],
+                      cursor: 'pointer'
+                    }
+                  }}
+                  onClick={() => setMonedaActiva('reales')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between', width: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <RealesIcon />
+                      <Typography variant="subtitle1" sx={{ ml: 1 }}>
+                        Saldo en Reales
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleConteoReales(); }}
+                      title="Conteo de Reales"
+                    >
+                      <CalculateIcon fontSize="small" />
+                    </IconButton>
                   </Box>
-                  <IconButton 
-                    size="small" 
-                    onClick={(e) => { e.stopPropagation(); handleConteoReales(); }} // Evitar que el click se propague al Paper
-                    title="Conteo de Reales"
-                  >
-                    <CalculateIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  {formatCurrency.reals(saldosData.reales)}
-                </Typography>
-              </Paper>
-            </Grid>
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', width: '100%' }}>
+                    {formatCurrency.reals(saldosData.reales)}
+                  </Typography>
+                </Paper>
+              </Grid>
 
-            {/* Saldo Dólares */}
-            <Grid item xs={12} md={4}>
-              <Paper 
-                elevation={monedaActiva === 'dolares' ? 4 : 1}
-                sx={{ 
-                  p: 1.5, 
-                  height: '100%', 
-                  bgcolor: monedaActiva === 'dolares' ? 'action.hover' : 'background.paper',
-                  border: monedaActiva === 'dolares' ? (theme) => `2px solid ${theme.palette.primary.main}` : 'none',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s, border 0.3s, box-shadow 0.3s',
-                  '&:hover': {
-                    bgcolor: 'action.hover'
-                  }
-                }}
-                onClick={() => setMonedaActiva('dolares')}
-              >
-                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <DolaresIcon />
-                    <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                      Saldo en Dólares
-                    </Typography>
+              {/* Saldo Dólares */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={monedaActiva === 'dolares' ? 8 : 2}
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    height: 140,
+                    bgcolor: 'rgba(156, 39, 176, 0.12)', // Violeta claro
+                    color: (theme) => theme.palette.secondary.main,
+                    borderRadius: 2,
+                    borderLeft: (theme) => `4px solid ${theme.palette.secondary.main}`,
+                    transition: 'transform 0.2s',
+                    boxShadow: (theme) => (monedaActiva === 'dolares' ? theme.shadows[8] : theme.shadows[2]),
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: (theme) => theme.shadows[8],
+                      cursor: 'pointer'
+                    }
+                  }}
+                  onClick={() => setMonedaActiva('dolares')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent: 'space-between', width: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <DolaresIcon />
+                      <Typography variant="subtitle1" sx={{ ml: 1 }}>
+                        Saldo en Dólares
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleConteoDolares(); }}
+                      title="Conteo de Dólares"
+                    >
+                      <CalculateIcon fontSize="small" />
+                    </IconButton>
                   </Box>
-                  <IconButton 
-                    size="small" 
-                    onClick={(e) => { e.stopPropagation(); handleConteoDolares(); }} // Evitar que el click se propague al Paper
-                    title="Conteo de Dólares"
-                  >
-                    <CalculateIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  {formatCurrency.dollars(saldosData.dolares)}
-                </Typography>
-              </Paper>
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', width: '100%' }}>
+                    {formatCurrency.dollars(saldosData.dolares)}
+                  </Typography>
+                </Paper>
+              </Grid>
             </Grid>
-          </Grid>
 
-          <Paper sx={{ p: 1.5, mb: 2, bgcolor: 'background.paper' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="subtitle1">
-                Últimos Movimientos en {monedaActiva === 'guaranies' ? 'Guaraníes' : monedaActiva === 'dolares' ? 'Dólares' : 'Reales'}
-              </Typography>
-                <Tooltip title={ordenDescendente ? "Orden actual: Más reciente primero. Clic para cambiar." : "Orden actual: Más antiguo primero. Clic para cambiar."}>
-                  <IconButton 
-                    size="small" 
-                    onClick={cambiarOrden}
-                    color="primary"
-                    sx={{ ml: 1 }}
+            <Paper sx={{ p: 1.5, mb: 2, bgcolor: 'background.paper' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="subtitle1">
+                  Últimos Movimientos en {monedaActiva === 'guaranies' ? 'Guaraníes' : monedaActiva === 'dolares' ? 'Dólares' : 'Reales'}
+                </Typography>
+                  <Tooltip title={ordenDescendente ? "Orden actual: Más reciente primero. Clic para cambiar." : "Orden actual: Más antiguo primero. Clic para cambiar."}>
+                    <IconButton 
+                      size="small" 
+                      onClick={cambiarOrden}
+                      color="primary"
+                      sx={{ ml: 1 }}
+                    >
+                      {ordenDescendente ? <ArrowDownwardIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Tooltip title="Ver listado completo con filtros">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<FullscreenIcon />}
+                    onClick={handleOpenMovimientosExpandidos}
                   >
-                    {ordenDescendente ? <ArrowDownwardIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}
-                  </IconButton>
+                    Expandir
+                  </Button>
                 </Tooltip>
               </Box>
-              <Tooltip title="Ver listado completo con filtros">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<FullscreenIcon />}
-                  onClick={handleOpenMovimientosExpandidos}
-                >
-                  Expandir
-                </Button>
-              </Tooltip>
-            </Box>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Fecha</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell align="center" width="50px">Editar</TableCell>
-                    <TableCell>Concepto</TableCell>
-                    <TableCell align="right">Ingreso</TableCell>
-                    <TableCell align="right">Egreso</TableCell>
-                    <TableCell align="right">Saldo</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {movimientosMonedaActiva.length > 0 ? (
-                    movimientosMonedaActiva.map((movimiento: Movimiento) => {
-                      const isCambioCancelacion = movimiento.tipo === 'Cambio' && movimiento.concepto.startsWith('Cancelación de cambio');
-                      const isDepositoCancelacion = movimiento.tipo === 'Cancelación depósito';
-                      const isValeCancelacion = movimiento.tipo === 'Vales' && movimiento.concepto.toLowerCase().includes('cancelado');
-                      const isGenericCancelacion = movimiento.concepto.toLowerCase().includes('cancelación');
-                      
-                      // AÑADIR: Verificar si el concepto incluye '[DEVUELTO]'
-                      const isDevuelto = String(movimiento.concepto || '').includes('[DEVUELTO]');
-                      
-                      // MODIFICAR: Incluir isDevuelto en la condición para deshabilitar
-                      const isEditDisabled = isCambioCancelacion || isDepositoCancelacion || isValeCancelacion || isGenericCancelacion || isDevuelto;
-                      
-                      let editTooltipText = "Editar/Anular movimiento";
-                      if (isCambioCancelacion || isDepositoCancelacion || isValeCancelacion || isGenericCancelacion) {
-                          editTooltipText = "Movimiento de anulación/cancelación (no editable)";
-                      } else if (isDevuelto) { // AÑADIR: Tooltip específico para devueltos
-                          editTooltipText = "Retiro devuelto (no editable)";
-                      }
-                      
-                      // Determinar si es un depósito para mostrar icono de comprobante
-                      const isDeposito = movimiento.tipo.toLowerCase().includes('depósito') || movimiento.tipo.toLowerCase().includes('deposito');
-                      const hasComprobante = !!movimiento.rutaComprobante;
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Fecha</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell align="center" width="50px">Editar</TableCell>
+                      <TableCell>Concepto</TableCell>
+                      <TableCell align="right">Ingreso</TableCell>
+                      <TableCell align="right">Egreso</TableCell>
+                      <TableCell align="right">Saldo</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {movimientosMonedaActiva.length > 0 ? (
+                      movimientosMonedaActiva.map((movimiento: Movimiento) => {
+                        const isCambioCancelacion = movimiento.tipo === 'Cambio' && movimiento.concepto.startsWith('Cancelación de cambio');
+                        const isDepositoCancelacion = movimiento.tipo === 'Cancelación depósito';
+                        const isValeCancelacion = movimiento.tipo === 'Vales' && movimiento.concepto.toLowerCase().includes('cancelado');
+                        const isGenericCancelacion = movimiento.concepto.toLowerCase().includes('cancelación');
+                        
+                        // AÑADIR: Verificar si el concepto incluye '[DEVUELTO]'
+                        const isDevuelto = String(movimiento.concepto || '').includes('[DEVUELTO]');
+                        
+                        // MODIFICAR: Incluir isDevuelto en la condición para deshabilitar
+                        const isEditDisabled = isCambioCancelacion || isDepositoCancelacion || isValeCancelacion || isGenericCancelacion || isDevuelto;
+                        
+                        let editTooltipText = "Editar/Anular movimiento";
+                        if (isCambioCancelacion || isDepositoCancelacion || isValeCancelacion || isGenericCancelacion) {
+                            editTooltipText = "Movimiento de anulación/cancelación (no editable)";
+                        } else if (isDevuelto) { // AÑADIR: Tooltip específico para devueltos
+                            editTooltipText = "Retiro devuelto (no editable)";
+                        }
+                        
+                        // Determinar si es un depósito para mostrar icono de comprobante
+                        const isDeposito = movimiento.tipo.toLowerCase().includes('depósito') || movimiento.tipo.toLowerCase().includes('deposito');
+                        const hasComprobante = !!movimiento.rutaComprobante;
 
-                      return (
-                        <TableRow key={movimiento.id} hover>
-                          <TableCell>{formatDate(movimiento.fechaHora ?? movimiento.fecha)}</TableCell>
-                          <TableCell>{movimiento.tipo}</TableCell>
-                          <TableCell align="center">
-                            <Tooltip title={editTooltipText}>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => !isEditDisabled && editarMovimiento(movimiento.id.toString(), movimiento.tipo)}
-                                  disabled={isEditDisabled}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>
-                             {/* Contenedor para concepto e iconos */}
-                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                               <span>{movimiento.concepto}</span>
-                                {
-                                  movimiento.tipo === 'Vales' &&
-                                  (() => {
-                                    const isEsteMovimientoCancelacion = movimiento.concepto.toLowerCase().includes('cancelado');
-                                    return (
-                                      <Tooltip title={isEsteMovimientoCancelacion ? "Movimiento de cancelación (no se puede imprimir)" : "Imprimir Vale"}>
+                        return (
+                          <TableRow key={movimiento.id} hover>
+                            <TableCell>{formatDate(movimiento.fechaHora ?? movimiento.fecha)}</TableCell>
+                            <TableCell>{movimiento.tipo}</TableCell>
+                            <TableCell align="center">
+                              <Tooltip title={editTooltipText}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => !isEditDisabled && editarMovimiento(movimiento.id.toString(), movimiento.tipo)}
+                                    disabled={isEditDisabled}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell>
+                               {/* Contenedor para concepto e iconos */}
+                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                 <span>{movimiento.concepto}</span>
+                                  {
+                                    movimiento.tipo === 'Vales' &&
+                                    (() => {
+                                      const isEsteMovimientoCancelacion = movimiento.concepto.toLowerCase().includes('cancelado');
+                                      return (
+                                        <Tooltip title={isEsteMovimientoCancelacion ? "Movimiento de cancelación (no se puede imprimir)" : "Imprimir Vale"}>
+                                          <span style={{ marginLeft: '4px' }}>
+                                            <IconButton
+                                              size="small"
+                                              color="info"
+                                              onClick={() => !isEsteMovimientoCancelacion && handleAbrirDialogoImprimirVale(movimiento.id)}
+                                              disabled={isEsteMovimientoCancelacion}
+                                              sx={{ p: 0.25 }}
+                                            >
+                                              <PrintIcon fontSize="small" />
+                                            </IconButton>
+                                          </span>
+                                        </Tooltip>
+                                      );
+                                    })()
+                                  }
+                                  {
+                                    movimiento.tipo === 'Cambio' && movimiento.operacionId && (
+                                      <Tooltip title={formatCambioTooltip(movimiento.operacionId)} placement="top" arrow>
                                         <span style={{ marginLeft: '4px' }}>
-                                          <IconButton
-                                            size="small"
-                                            color="info"
-                                            onClick={() => !isEsteMovimientoCancelacion && handleAbrirDialogoImprimirVale(movimiento.id)}
-                                            disabled={isEsteMovimientoCancelacion}
-                                            sx={{ p: 0.25 }}
-                                          >
-                                            <PrintIcon fontSize="small" />
-                                          </IconButton>
+                                            <IconButton
+                                              size="small"
+                                              color="success"
+                                              sx={{ p: 0.25 }}
+                                            >
+                                              <MonetizationOnIcon fontSize="small" />
+                                            </IconButton>
                                         </span>
                                       </Tooltip>
-                                    );
-                                  })()
-                                }
-                                {
-                                  movimiento.tipo === 'Cambio' && movimiento.operacionId && (
-                                    <Tooltip title={formatCambioTooltip(movimiento.operacionId)} placement="top" arrow>
-                                      <span style={{ marginLeft: '4px' }}>
-                                          <IconButton
-                                            size="small"
-                                            color="success"
-                                            sx={{ p: 0.25 }}
-                                          >
-                                            <MonetizationOnIcon fontSize="small" />
-                                          </IconButton>
-                                      </span>
-                                    </Tooltip>
-                                  )
-                                }
-                                {
-                                  // Icono para ver comprobante de depósito
-                                  isDeposito && hasComprobante && !isDepositoCancelacion && (
-                                      <Tooltip title="Ver Comprobante">
-                                           <span style={{ marginLeft: '4px' }}>
-                                              <IconButton
-                                                  size="small"
-                                                  color="secondary"
-                                                  sx={{ p: 0.25 }}
-                                                  onClick={() => window.open(`http://localhost:3000/uploads/${movimiento.rutaComprobante}`, '_blank')}
-                                              >
-                                                  <DescriptionIcon fontSize="small" />
-                                              </IconButton>
-                                          </span>
-                                      </Tooltip>
-                                  )
-                                }
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right" sx={{ color: movimiento.esIngreso ? 'success.main' : 'inherit' }}>
-                            {movimiento.esIngreso ? formatOrError(movimiento.monto, movimiento.moneda) : '-'}
-                          </TableCell>
-                          <TableCell align="right" sx={{ color: !movimiento.esIngreso ? 'error.main' : 'inherit' }}>
-                            {!movimiento.esIngreso ? formatOrError(movimiento.monto || 0, movimiento.moneda || 'guaranies') : '-'}
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatOrError(movimiento.saldoActual ?? 0, movimiento.moneda || 'guaranies')}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        No hay movimientos registrados en esta moneda
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </>
-      )}
-      
-      <RecibirRetiros 
-        open={recibirRetirosOpen} 
-        onClose={handleCloseRecibirRetiros} 
-        onGuardarExito={recargarTodo}
-      />
-      
-      <PagosServicios 
-        open={pagosServiciosOpen} 
-        onClose={handleClosePagosServicios} 
-        onGuardarExito={recargarTodo}
-      />
-      
-      <DepositoBancario 
-        open={depositoOpen} 
-        onClose={handleCloseDeposito} 
-        onGuardarExito={recargarTodo}
-      />
-      
-      <UsoDevolucion
-        open={usoDevolucionOpen}
-        onClose={handleCloseUsoDevolucion}
-        onGuardarExito={recargarTodo}
-      />
-      
-      <CambioMoneda
-        open={cambioMonedaOpen}
-        onClose={handleCloseCambioMoneda}
-        onGuardarExito={recargarTodo}
-      />
-      
-      <Vales
-        open={valesOpen}
-        onClose={handleCloseVales}
-        onGuardarExito={recargarTodo}
-      />
-      
-      <ConteoGuaranies
-        open={conteoGuaraniesOpen}
-        onClose={handleCloseConteoGuaranies}
-        onSaveTotal={handleSaveConteo}
-        saldoSistema={saldosData.guaranies}
-        usuarioId={1} // Usar el ID del usuario autenticado
-      />
-      
-      <ConteoReales
-        open={conteoRealesOpen}
-        onClose={handleCloseConteoReales}
-        onSaveTotal={handleSaveConteo}
-        saldoSistema={saldosData.reales}
-        usuarioId={1} // Usar el ID del usuario autenticado
-      />
-      
-      <ConteoDolares
-        open={conteoDolaresOpen}
-        onClose={handleCloseConteoDolares}
-        onSaveTotal={handleSaveConteo}
-        saldoSistema={saldosData.dolares}
-        usuarioId={1} // Usar el ID del usuario autenticado
-      />
-      
-      <MovimientosExpandidos
-        open={movimientosExpandidosOpen}
-        onClose={handleCloseMovimientosExpandidos}
-        monedaActiva={monedaActiva}
-      />
+                                    )
+                                  }
+                                  {
+                                    // Icono para ver comprobante de depósito
+                                    isDeposito && hasComprobante && !isDepositoCancelacion && (
+                                        <Tooltip title="Ver Comprobante">
+                                             <span style={{ marginLeft: '4px' }}>
+                                                <IconButton
+                                                    size="small"
+                                                    color="secondary"
+                                                    sx={{ p: 0.25 }}
+                                                    onClick={() => window.open(`http://localhost:3000/uploads/${movimiento.rutaComprobante}`, '_blank')}
+                                                >
+                                                    <DescriptionIcon fontSize="small" />
+                                                </IconButton>
+                                            </span>
+                                        </Tooltip>
+                                    )
+                                  }
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right" sx={{ color: movimiento.esIngreso ? 'success.main' : 'inherit' }}>
+                              {movimiento.esIngreso ? formatOrError(movimiento.monto, movimiento.moneda) : '-'}
+                            </TableCell>
+                            <TableCell align="right" sx={{ color: !movimiento.esIngreso ? 'error.main' : 'inherit' }}>
+                              {!movimiento.esIngreso ? formatOrError(movimiento.monto || 0, movimiento.moneda || 'guaranies') : '-'}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatOrError(movimiento.saldoActual ?? 0, movimiento.moneda || 'guaranies')}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">
+                          No hay movimientos registrados en esta moneda
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </>
+        )}
+        
+        <RecibirRetiros 
+          open={recibirRetirosOpen} 
+          onClose={handleCloseRecibirRetiros} 
+          onGuardarExito={recargarTodo}
+        />
+        
+        <PagosServicios 
+          open={pagosServiciosOpen} 
+          onClose={handleClosePagosServicios} 
+          onGuardarExito={recargarTodo}
+        />
+        
+        <DepositoBancario 
+          open={depositoOpen} 
+          onClose={handleCloseDeposito} 
+          onGuardarExito={recargarTodo}
+        />
+        
+        <UsoDevolucion
+          open={usoDevolucionOpen}
+          onClose={handleCloseUsoDevolucion}
+          onGuardarExito={recargarTodo}
+        />
+        
+        <CambioMoneda
+          open={cambioMonedaOpen}
+          onClose={handleCloseCambioMoneda}
+          onGuardarExito={recargarTodo}
+        />
+        
+        <Vales
+          open={valesOpen}
+          onClose={handleCloseVales}
+          onGuardarExito={recargarTodo}
+        />
+        
+        <ConteoGuaranies
+          open={conteoGuaraniesOpen}
+          onClose={handleCloseConteoGuaranies}
+          onSaveTotal={handleSaveConteo}
+          saldoSistema={saldosData.guaranies}
+          usuarioId={1} // Usar el ID del usuario autenticado
+        />
+        
+        <ConteoReales
+          open={conteoRealesOpen}
+          onClose={handleCloseConteoReales}
+          onSaveTotal={handleSaveConteo}
+          saldoSistema={saldosData.reales}
+          usuarioId={1} // Usar el ID del usuario autenticado
+        />
+        
+        <ConteoDolares
+          open={conteoDolaresOpen}
+          onClose={handleCloseConteoDolares}
+          onSaveTotal={handleSaveConteo}
+          saldoSistema={saldosData.dolares}
+          usuarioId={1} // Usar el ID del usuario autenticado
+        />
+        
+        <MovimientosExpandidos
+          open={movimientosExpandidosOpen}
+          onClose={handleCloseMovimientosExpandidos}
+          monedaActiva={monedaActiva}
+        />
 
-      <EditarVale
-        open={editarValeOpen}
-        onClose={() => setEditarValeOpen(false)}
-        onSuccess={() => {
-          setEditarValeOpen(false);
-          recargarTodo();
-        }}
-        movimientoId={selectedMovimientoId}
-        tipoMovimiento="Vales"
-      />
+        <EditarVale
+          open={editarValeOpen}
+          onClose={() => setEditarValeOpen(false)}
+          onSuccess={() => {
+            setEditarValeOpen(false);
+            recargarTodo();
+          }}
+          movimientoId={selectedMovimientoId}
+          tipoMovimiento="Vales"
+        />
 
-      <EditarUsoDevolucion
-        open={editarUsoDevolucionOpen}
-        onClose={handleCloseEditarUsoDevolucion}
-        movimientoId={selectedMovimientoId}
-        onSuccess={recargarTodo}
-      />
+        <EditarUsoDevolucion
+          open={editarUsoDevolucionOpen}
+          onClose={handleCloseEditarUsoDevolucion}
+          movimientoId={selectedMovimientoId}
+          onSuccess={recargarTodo}
+        />
 
-      <EliminarCambio
-        open={eliminarCambioOpen}
-        onClose={() => setEliminarCambioOpen(false)}
-        cambioId={selectedCambioId}
-        onSuccess={recargarTodo}
-      />
+        <EliminarCambio
+          open={eliminarCambioOpen}
+          onClose={() => setEliminarCambioOpen(false)}
+          cambioId={selectedCambioId}
+          onSuccess={recargarTodo}
+        />
 
-      <ImprimirValeDialog
-        open={imprimirValeDialogOpen}
-        onClose={() => setImprimirValeDialogOpen(false)}
-        movimientoId={valeParaImprimirId}
-      />
+        <ImprimirValeDialog
+          open={imprimirValeDialogOpen}
+          onClose={() => setImprimirValeDialogOpen(false)}
+          movimientoId={valeParaImprimirId}
+        />
 
-      <CancelarDeposito
-        open={cancelarDepositoOpen}
-        onClose={handleCloseCancelarDeposito}
-        movimientoId={selectedMovimientoId}
-        onSuccess={recargarTodo}
-      />
+        <CancelarDeposito
+          open={cancelarDepositoOpen}
+          onClose={handleCloseCancelarDeposito}
+          movimientoId={selectedMovimientoId}
+          onSuccess={recargarTodo}
+        />
 
-      <AnularPagoServicio
-        open={anularPagoServicioOpen}
-        onClose={() => setAnularPagoServicioOpen(false)}
-        movimientoId={selectedMovimientoId}
-        onSuccess={recargarTodo}
-      />
+        <AnularPagoServicio
+          open={anularPagoServicioOpen}
+          onClose={() => setAnularPagoServicioOpen(false)}
+          movimientoId={selectedMovimientoId}
+          onSuccess={recargarTodo}
+        />
 
-      <DevolverRetiro
-        open={dialogoDevolverRetiroOpen}
-        onClose={handleCerrarDialogoDevolverRetiro}
-        onGuardarExito={recargarTodo}
-        retiroId={retiroIdSeleccionado}
-      />
+        <DevolverRetiro
+          open={dialogoDevolverRetiroOpen}
+          onClose={handleCerrarDialogoDevolverRetiro}
+          onGuardarExito={recargarTodo}
+          retiroId={retiroIdSeleccionado}
+        />
 
-      <Dialog
-        open={errorDialogOpen}
-        onClose={handleCloseErrorDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">
-          {"Vale Cancelado"}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" id="alert-dialog-description">
-            {errorDialogMessage}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseErrorDialog} color="primary" autoFocus>
-            Aceptar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Dialog
+          open={errorDialogOpen}
+          onClose={handleCloseErrorDialog}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {"Vale Cancelado"}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" id="alert-dialog-description">
+              {errorDialogMessage}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseErrorDialog} color="primary" autoFocus>
+              Aceptar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Box>
   );
 };

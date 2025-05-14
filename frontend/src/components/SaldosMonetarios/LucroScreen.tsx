@@ -27,6 +27,7 @@ import {
   Card,
   CardContent,
   Divider,
+  GlobalStyles
 } from '@mui/material';
 import axios from 'axios';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -479,6 +480,33 @@ const LucroScreen: React.FC = () => {
         pt: 2, // Padding top general
         pb: 4  // Padding bottom general
       }}>
+        <GlobalStyles
+          styles={{
+            '*::-webkit-scrollbar': {
+              width: '12px',
+              height: '12px',
+            },
+            '*::-webkit-scrollbar-track': {
+              backgroundColor: '#121212', // Casi negro
+            },
+            '*::-webkit-scrollbar-thumb': {
+              backgroundColor: '#333', // Gris muy oscuro
+              borderRadius: '6px',
+              '&:hover': {
+                backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+              },
+            },
+            'html': {
+              scrollbarColor: '#333 #121212', // Formato: thumb track
+              scrollbarWidth: 'thin',
+            },
+            'body': {
+              scrollbarColor: '#333 #121212',
+              scrollbarWidth: 'thin',
+            }
+          }}
+        />
+        
         <Container maxWidth="xl"> {/* Usar maxWidth="xl" para más espacio */}
           <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
             <Typography variant="h5" sx={{ fontWeight: 'medium', color: '#64b5f6' }}> {/* Un azul más claro */}

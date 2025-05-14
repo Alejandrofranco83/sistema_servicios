@@ -213,20 +213,33 @@ const EditarUsoDevolucion: React.FC<EditarUsoDevolucionProps> = ({
   };
 
   // Función para renderizar montos
-  const renderMonto = (valor: number, moneda: 'Gs' | 'U$D' | 'R$'): JSX.Element | null => {
+  const renderMonto = (valor: number, moneda: 'G$' | 'U$D' | 'R$'): JSX.Element | null => {
     if (valor === 0) return null;
 
     let formateado = "";
     switch (moneda) {
-      case 'Gs':
+      case 'G$':
         // Asegurar formato 1.000 para guaraníes
-        formateado = new Intl.NumberFormat('es-PY').format(valor);
+        formateado = new Intl.NumberFormat('es-PY', { 
+          useGrouping: true,
+          maximumFractionDigits: 0
+        }).format(valor);
         break;
       case 'U$D':
-        formateado = formatCurrency.dollars(valor);
+        // Formato 1,234.56 para dólares
+        formateado = new Intl.NumberFormat('en-US', { 
+          useGrouping: true,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(valor);
         break;
       case 'R$':
-        formateado = formatCurrency.reals(valor);
+        // Formato 1.234,56 para reales
+        formateado = new Intl.NumberFormat('pt-BR', { 
+          useGrouping: true,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(valor);
         break;
     }
 
@@ -340,7 +353,7 @@ const EditarUsoDevolucion: React.FC<EditarUsoDevolucionProps> = ({
                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 1 }}>Montos</Typography>
                    <Paper variant="outlined" sx={{ p: 1.5 }}>
                     <Stack spacing={0.5}>
-                      {renderMonto(operacionData.guaranies, 'Gs')}
+                      {renderMonto(operacionData.guaranies, 'G$')}
                       {renderMonto(operacionData.dolares, 'U$D')}
                       {renderMonto(operacionData.reales, 'R$')}
                       {(operacionData.guaranies === 0 && operacionData.dolares === 0 && operacionData.reales === 0) && (

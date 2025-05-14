@@ -44,6 +44,7 @@ import categoriasGastosRoutes from './routes/categorias-gastos.routes'; // Impor
 import gastosRoutes from './routes/gastos.routes'; // Importar rutas para gestión de gastos
 import movimientoCajaRoutes from './routes/movimientoCaja.routes'; // Importar rutas para movimientos de caja
 import activoPasivoRoutes from './routes/activoPasivoRoutes'; // Importar rutas para activo pasivo
+import notificacionRoutes from './routes/notificacion.routes'; // Importar rutas de notificaciones
 
 dotenv.config();
 
@@ -108,6 +109,11 @@ app.use('/api/conteos', conteoRoutes);
 app.use('/api/caja_mayor_movimientos', cajaMayorMovimientosRouter);
 app.use('/api/cotizaciones-externas', cotizacionExternaRoutes);
 app.use('/api/diferencias', diferenciasRoutes);
+// Registrar rutas de notificaciones
+console.log('[DEBUG] Intentando registrar /api/notificaciones...');
+app.use('/api/notificaciones', notificacionRoutes);
+console.log('[DEBUG] Ruta /api/notificaciones registrada en index.ts');
+
 console.log('[DEBUG] Intentando registrar /api/movimientos-farmacia...');
 app.use('/api/movimientos-farmacia', movimientoFarmaciaRoutes);
 console.log('[DEBUG] Ruta /api/movimientos-farmacia registrada en index.ts');

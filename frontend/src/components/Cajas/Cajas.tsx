@@ -24,7 +24,12 @@ import {
   DialogContentText,
   DialogActions,
   TextField,
-  Grid
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  GlobalStyles
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,6 +46,7 @@ import {
 import { useCajas } from './CajasContext';
 import { formatearIdCaja, formatearMontoConSeparadores } from './helpers';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiService } from '../../config/api';
 
 // Importar componentes refactorizados
 import { ListaRetiros } from './CajasRetiros';
@@ -54,6 +60,7 @@ import { VerMovimientosDialog, PagosDialog, ListaPagos } from './CajasMovimiento
 const Cajas: React.FC = () => {
   const { user } = useAuth();
   const isOperador = user && user.rol && user.rol.nombre.toUpperCase() === 'OPERADOR';
+  const isAdmin = user && user.rol && user.rol.nombre.toUpperCase() === 'ADMINISTRADOR';
 
   const {
     errorMessage,
@@ -101,6 +108,37 @@ const Cajas: React.FC = () => {
   const [fechaDesde, setFechaDesde] = React.useState<string>("");
   const [fechaHasta, setFechaHasta] = React.useState<string>("");
   const [filtroActivado, setFiltroActivado] = React.useState<boolean>(false);
+  
+  // Nuevo estado para el filtro por sucursal
+  const [sucursales, setSucursales] = React.useState<{id: string, nombre: string}[]>([]);
+  const [sucursalSeleccionada, setSucursalSeleccionada] = React.useState<string>("");
+  const [loadingSucursales, setLoadingSucursales] = React.useState<boolean>(false);
+
+  // Cargar sucursales al iniciar para el filtro
+  React.useEffect(() => {
+    const cargarSucursales = async () => {
+      if (isAdmin) {
+        try {
+          setLoadingSucursales(true);
+          const response = await apiService.sucursales.getAll();
+          if (response.data && Array.isArray(response.data)) {
+            // Agregar opción "Todas" al inicio
+            const sucursalesConTodas = [
+              { id: "", nombre: "Todas las Sucursales" },
+              ...response.data.map((s: any) => ({ id: s.id, nombre: s.nombre }))
+            ];
+            setSucursales(sucursalesConTodas);
+          }
+        } catch (error) {
+          console.error('Error al cargar sucursales:', error);
+        } finally {
+          setLoadingSucursales(false);
+        }
+      }
+    };
+    
+    cargarSucursales();
+  }, [isAdmin]);
 
   // Manejador para cambio de pestaña
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -111,6 +149,7 @@ const Cajas: React.FC = () => {
   const limpiarFiltros = () => {
     setFechaDesde("");
     setFechaHasta("");
+    setSucursalSeleccionada("");
     setFiltroActivado(false);
   };
 
@@ -121,6 +160,13 @@ const Cajas: React.FC = () => {
 
   // Función para filtrar cajas por fecha
   const filtrarCajasPorFecha = (cajasFiltradas: any[]) => {
+    // Si hay filtro de sucursal activado para administradores, aplicarlo
+    if (isAdmin && sucursalSeleccionada) {
+      cajasFiltradas = cajasFiltradas.filter(caja => 
+        caja.sucursalId === sucursalSeleccionada
+      );
+    }
+
     // Si hay filtro activado por el usuario, aplicarlo
     if (filtroActivado) {
       return cajasFiltradas.filter(caja => {
@@ -174,9 +220,37 @@ const Cajas: React.FC = () => {
 
   return (
     <Container maxWidth="xl">
+      {/* Aplicar estilos globales de scrollbar a toda la aplicación */}
+      <GlobalStyles
+        styles={{
+          '*::-webkit-scrollbar': {
+            width: '12px',
+            height: '12px',
+          },
+          '*::-webkit-scrollbar-track': {
+            backgroundColor: '#121212', // Casi negro
+          },
+          '*::-webkit-scrollbar-thumb': {
+            backgroundColor: '#333', // Gris muy oscuro
+            borderRadius: '6px',
+            '&:hover': {
+              backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+            },
+          },
+          'html': {
+            scrollbarColor: '#333 #121212', // Formato: thumb track
+            scrollbarWidth: 'thin',
+          },
+          'body': {
+            scrollbarColor: '#333 #121212',
+            scrollbarWidth: 'thin',
+          }
+        }}
+      />
+      
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, mb: 2 }}>
         <Typography variant="h4" component="h1">
-          {isOperador ? "Panel de Operaciones" : "Cajas"}
+          {isOperador ? "Panel de Operaciones" : (user && user.rol && user.rol.nombre.toUpperCase() === 'ADMINISTRADOR' ? "Cajas de Todas las Sucursales" : "Cajas")}
         </Typography>
         <Button 
           variant="contained" 
@@ -205,10 +279,33 @@ const Cajas: React.FC = () => {
             </Tabs>
           </Paper>
 
-          {/* Filtro por fecha */}
+          {/* Filtro por fecha y sucursal en una sola fila */}
           <Paper sx={{ mb: 3, p: 2 }}>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={4} md={3}>
+              {/* Filtro de sucursal - sólo para administradores */}
+              {isAdmin && (
+                <Grid item xs={12} sm={4} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="sucursal-select-label">Sucursal</InputLabel>
+                    <Select
+                      labelId="sucursal-select-label"
+                      id="sucursal-select"
+                      value={sucursalSeleccionada}
+                      label="Sucursal"
+                      onChange={(e) => setSucursalSeleccionada(e.target.value)}
+                      disabled={loadingSucursales}
+                    >
+                      {sucursales.map((sucursal) => (
+                        <MenuItem key={sucursal.id} value={sucursal.id}>
+                          {sucursal.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
+              
+              <Grid item xs={12} sm={4} md={isAdmin ? 2 : 3}>
                 <TextField
                   label="Fecha Desde"
                   type="date"
@@ -224,7 +321,7 @@ const Cajas: React.FC = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4} md={3}>
+              <Grid item xs={12} sm={4} md={isAdmin ? 2 : 3}>
                 <TextField
                   label="Fecha Hasta"
                   type="date"
@@ -240,14 +337,14 @@ const Cajas: React.FC = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4} md={6}>
+              <Grid item xs={12} sm={4} md={isAdmin ? 6 : 6}>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <Button 
                     variant="contained" 
                     color="primary" 
                     startIcon={<FilterAltIcon />}
                     onClick={aplicarFiltros}
-                    disabled={!fechaDesde && !fechaHasta}
+                    disabled={!fechaDesde && !fechaHasta && !sucursalSeleccionada}
                   >
                     Aplicar Filtros
                   </Button>
@@ -255,7 +352,7 @@ const Cajas: React.FC = () => {
                     variant="outlined" 
                     color="secondary" 
                     onClick={limpiarFiltros}
-                    disabled={!filtroActivado && !fechaDesde && !fechaHasta}
+                    disabled={!filtroActivado && !fechaDesde && !fechaHasta && !sucursalSeleccionada}
                   >
                     Limpiar Filtros
                   </Button>
@@ -267,6 +364,7 @@ const Cajas: React.FC = () => {
                 <Alert severity="info" sx={{ display: 'flex', alignItems: 'center' }}>
                   <Box>
                     Filtro aplicado: 
+                    {sucursalSeleccionada && ` Sucursal: ${sucursales.find(s => s.id === sucursalSeleccionada)?.nombre}`}
                     {fechaDesde && ` Desde ${fechaDesde.split('-').reverse().join('/')}`}
                     {fechaHasta && ` Hasta ${fechaHasta.split('-').reverse().join('/')}`}
                   </Box>

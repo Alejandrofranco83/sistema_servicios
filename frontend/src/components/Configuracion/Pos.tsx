@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -181,6 +181,9 @@ const Pos: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { user } = useAuth();
 
+  const nombrePosRef = useRef<HTMLInputElement>(null); // Ref for Nombre POS input
+  const submitButtonRef = useRef<HTMLButtonElement>(null); // Ref for submit button
+
   // Estado para el formulario
   const [formData, setFormData] = useState<Omit<Pos, 'id'>>({
     nombre: '',
@@ -233,6 +236,34 @@ const Pos: React.FC = () => {
   // Seleccionar texto al hacer focus
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
+  };
+
+  // Manejar navegación con Enter
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    // Changed event type to HTMLFormElement
+    if (event.key === 'Enter' && !(event.target instanceof HTMLTextAreaElement)) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const focusableElements = Array.from(
+        form.querySelectorAll('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled]), [role="button"]:not([disabled])')
+      ).filter(el => {
+        const style = window.getComputedStyle(el as HTMLElement);
+        return (el as HTMLElement).offsetParent !== null && style.display !== 'none' && style.visibility !== 'hidden';
+      }) as HTMLElement[];
+
+      const currentFocusedIndex = focusableElements.findIndex(el => el === document.activeElement || el.contains(document.activeElement));
+
+      if (currentFocusedIndex !== -1 && currentFocusedIndex < focusableElements.length - 1) {
+        const nextElement = focusableElements[currentFocusedIndex + 1];
+        nextElement?.focus();
+      } else if (currentFocusedIndex === focusableElements.length - 2) { // Assuming Cancel is before Submit
+        const submitBtn = submitButtonRef.current;
+        if (submitBtn && !submitBtn.disabled) {
+          submitBtn.focus();
+        }
+      }
+    }
   };
 
   // Abrir diálogo para crear un nuevo POS
@@ -465,12 +496,24 @@ const Pos: React.FC = () => {
         onClose={handleCloseDialog}
         fullWidth
         maxWidth="sm"
+        TransitionProps={{
+          onEntered: () => {
+            if (!editingPos && nombrePosRef.current) {
+              nombrePosRef.current.focus();
+            }
+          }
+        }}
       >
         <DialogTitle>
           {editingPos ? 'Editar Dispositivo POS' : 'Nuevo Dispositivo POS'}
         </DialogTitle>
         <DialogContent>
-          <Box component="form" noValidate sx={{ mt: 2 }}>
+          <form 
+            noValidate 
+            style={{ marginTop: '16px' }}
+            onKeyDown={handleKeyDown} 
+            onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }}
+          >
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
@@ -481,8 +524,8 @@ const Pos: React.FC = () => {
                   value={formData.nombre}
                   onChange={handleInputChange}
                   required
-                  autoFocus
                   onFocus={handleFocus}
+                  inputRef={nombrePosRef}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -517,7 +560,7 @@ const Pos: React.FC = () => {
                 </FormControl>
               </Grid>
             </Grid>
-          </Box>
+          </form>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
@@ -526,6 +569,7 @@ const Pos: React.FC = () => {
             variant="contained" 
             color="primary"
             disabled={!formData.nombre || !formData.codigoBarras || !formData.cuentaBancariaId}
+            ref={submitButtonRef}
           >
             {editingPos ? 'Actualizar' : 'Registrar'}
           </Button>

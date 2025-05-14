@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -69,6 +69,8 @@ const Personas: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   
+  const guardarButtonRef = useRef<HTMLButtonElement>(null);
+
   // Cargar personas al montar el componente
   useEffect(() => {
     loadPersonas();
@@ -133,6 +135,33 @@ const Personas: React.FC = () => {
     });
     setEditingId(persona.id);
     setOpenDialog(true);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter' && !(event.target instanceof HTMLTextAreaElement)) { 
+      event.preventDefault();
+
+      const focusableElements = Array.from(
+        (event.currentTarget as HTMLElement).querySelectorAll(
+          'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled]), [role="button"]:not([disabled])'
+        )
+      ).filter(el => {
+          const style = window.getComputedStyle(el as HTMLElement);
+          return (el as HTMLElement).offsetParent !== null && style.display !== 'none' && style.visibility !== 'hidden';
+      }) as HTMLElement[];
+
+      const currentFocusedIndex = focusableElements.findIndex(el => el === document.activeElement || el.contains(document.activeElement));
+
+      if (currentFocusedIndex !== -1 && currentFocusedIndex < focusableElements.length - 1) {
+        const nextElement = focusableElements[currentFocusedIndex + 1];
+        nextElement?.focus();
+      } else if (currentFocusedIndex === focusableElements.length - 1) {
+          const saveButton = guardarButtonRef.current;
+          if (saveButton && document.activeElement !== saveButton && !saveButton.disabled) {
+              saveButton.focus();
+          }
+      }
+    }
   };
 
   const handleSubmit = async () => {
@@ -315,7 +344,12 @@ const Personas: React.FC = () => {
           {editingId ? 'EDITAR PERSONA' : 'AGREGAR NUEVA PERSONA'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+          <form 
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '16px' }}
+            onKeyDown={handleKeyDown} 
+            noValidate
+            onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+          >
             <TextField
               required
               fullWidth
@@ -386,7 +420,7 @@ const Personas: React.FC = () => {
                 }}
               />
             </LocalizationProvider>
-          </Box>
+          </form>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>CANCELAR</Button>
@@ -395,6 +429,7 @@ const Personas: React.FC = () => {
             variant="contained" 
             color="primary"
             disabled={!formData.nombreCompleto || !formData.documento}
+            ref={guardarButtonRef}
           >
             GUARDAR
           </Button>

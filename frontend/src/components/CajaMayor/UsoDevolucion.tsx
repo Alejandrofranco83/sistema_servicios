@@ -236,37 +236,46 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
   };
   
   // Función para formatear valores con decimales (dólares, reales)
-  const formatDecimal = (value: string): string => {
-    // Para reales y dólares, permitir decimales
-    let input = value.replace(/[^\d.,]/g, '');
-    
-    if (input.includes(',')) {
-      const parts = input.split(',');
-      if (parts.length > 2) {
-        input = parts[0] + ',' + parts.slice(1).join('');
+  const formatDecimal = (value: string, moneda: 'USD' | 'BRL'): string => {
+    if (moneda === 'BRL') {
+      // Para reales: formato con punto para miles y coma para decimales
+      const numericValue = value.replace(/\D/g, '');
+      if (numericValue === '') {
+        return '';
       }
       
-      if (parts[1] && parts[1].length > 2) {
-        parts[1] = parts[1].substring(0, 2);
-        input = parts[0] + ',' + parts[1];
+      // Asegurar que tengamos al menos 3 dígitos para tener formato con decimales
+      const paddedValue = numericValue.padStart(3, '0');
+      
+      // Separar enteros y decimales
+      const decimalPart = paddedValue.slice(-2);
+      const integerPart = paddedValue.slice(0, -2).replace(/^0+/, '') || '0'; // Quitar ceros iniciales
+      
+      // Formatear la parte entera con puntos para los miles
+      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      
+      return `${formattedInteger},${decimalPart}`;
+    } else if (moneda === 'USD') {
+      // Para dólares: formato con coma para miles y punto para decimales
+      const numericValue = value.replace(/\D/g, '');
+      if (numericValue === '') {
+        return '';
       }
       
-      const entero = parts[0].replace(/\./g, '');
+      // Asegurar que tengamos al menos 3 dígitos para tener formato con decimales
+      const paddedValue = numericValue.padStart(3, '0');
       
-      let enteroFormateado = '';
-      if (entero) {
-        enteroFormateado = Number(entero).toLocaleString('es-PY').split(',')[0];
-      }
+      // Separar enteros y decimales
+      const decimalPart = paddedValue.slice(-2);
+      const integerPart = paddedValue.slice(0, -2).replace(/^0+/, '') || '0'; // Quitar ceros iniciales
       
-      input = enteroFormateado + ',' + parts[1];
-    } else {
-      const entero = input.replace(/\./g, '');
-      if (entero) {
-        input = Number(entero).toLocaleString('es-PY');
-      }
+      // Formatear la parte entera con comas para los miles (formato USA)
+      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      
+      return `${formattedInteger}.${decimalPart}`;
     }
     
-    return input;
+    return value;
   };
   
   // Manejar cambios en los montos
@@ -275,11 +284,11 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
   };
   
   const handleDolaresChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMontoDolares(formatDecimal(e.target.value));
+    setMontoDolares(formatDecimal(e.target.value, 'USD'));
   };
   
   const handleRealesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMontoReales(formatDecimal(e.target.value));
+    setMontoReales(formatDecimal(e.target.value, 'BRL'));
   };
   
   // Función para procesar la operación
@@ -292,7 +301,11 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
     
     // Verificar que al menos un monto sea mayor a cero
     const guaranies = montoGuaranies ? parseInt(montoGuaranies.replace(/\./g, ''), 10) : 0;
-    const dolares = montoDolares ? parseFloat(montoDolares.replace(/\./g, '').replace(',', '.')) : 0;
+    
+    // Para dólares, reemplazar los separadores correctamente según formato USA
+    const dolares = montoDolares ? parseFloat(montoDolares.replace(/,/g, '')) : 0;
+    
+    // Para reales, reemplazar los separadores correctamente según formato brasileño
     const reales = montoReales ? parseFloat(montoReales.replace(/\./g, '').replace(',', '.')) : 0;
     
     if (guaranies === 0 && dolares === 0 && reales === 0) {
@@ -417,13 +430,27 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
     
     switch (moneda) {
       case 'guaranies':
-        formateado = formatCurrency.guaranies(Math.abs(valor));
+        // Formato 1.000 para guaraníes
+        formateado = new Intl.NumberFormat('es-PY', { 
+          useGrouping: true,
+          maximumFractionDigits: 0
+        }).format(Math.abs(valor));
         break;
       case 'dolares':
-        formateado = formatCurrency.dollars(Math.abs(valor));
+        // Formato 1,234.56 para dólares
+        formateado = new Intl.NumberFormat('en-US', { 
+          useGrouping: true,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(Math.abs(valor));
         break;
       case 'reales':
-        formateado = formatCurrency.reals(Math.abs(valor));
+        // Formato 1.234,56 para reales
+        formateado = new Intl.NumberFormat('pt-BR', { 
+          useGrouping: true,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(Math.abs(valor));
         break;
     }
     
@@ -433,6 +460,7 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         {icono}
         <Typography variant="body2" sx={{ color }}>
+          {moneda === 'guaranies' ? 'G$ ' : moneda === 'dolares' ? 'U$D ' : 'R$ '}
           {formateado}
         </Typography>
       </Box>
@@ -646,7 +674,7 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
                 placeholder="0"
                 sx={{ mb: 2 }}
                 InputProps={{
-                  endAdornment: <Typography variant="caption">&nbsp;Gs</Typography>
+                  endAdornment: <Typography variant="caption">&nbsp;G$</Typography>
                 }}
               />
               
@@ -663,7 +691,7 @@ const UsoDevolucion: React.FC<UsoDevolucionProps> = ({ open, onClose, onGuardarE
                 placeholder="0"
                 sx={{ mb: 2 }}
                 InputProps={{
-                  endAdornment: <Typography variant="caption">&nbsp;US$</Typography>
+                  endAdornment: <Typography variant="caption">&nbsp;U$D</Typography>
                 }}
               />
               

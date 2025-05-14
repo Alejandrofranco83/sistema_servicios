@@ -13,7 +13,7 @@ model PersonaIPS {
   id          Int      @id @default(autoincrement())
   personaId   Int
   fechaInicio DateTime
-  estado      String // ACTIVO o INACTIVO
+  estado      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   persona     Persona  @relation(fields: [personaId], references: [id])
@@ -22,25 +22,25 @@ model PersonaIPS {
 }
 
 model Persona {
-  id              Int              @id @default(autoincrement())
-  nombreCompleto  String
-  documento       String           @unique
-  telefono        String?
-  email           String?
-  direccion       String?
-  tipo            String
-  fechaNacimiento DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  usuario         Usuario?         @relation("PersonaUsuario")
-  vales           Vale[]
-  saldoPersona    SaldoPersona?
-  usoDevolucion   UsoDevolucion[]
-  Sueldo          Sueldo[]
-  movimientosRRHH MovimientoRRHH[]
-  ips             PersonaIPS[]
-  resumenesRRHH   ResumenMesRRHH[]
+  id                     Int                        @id @default(autoincrement())
+  nombreCompleto         String
+  documento              String                     @unique
+  telefono               String?
+  email                  String?
+  direccion              String?
+  tipo                   String
+  fechaNacimiento        DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  ips                    PersonaIPS[]
+  Sueldo                 Sueldo[]
+  usuario                Usuario?                   @relation("PersonaUsuario")
+  vales                  Vale[]
+  movimientosRRHH        MovimientoRRHH[]
   movimientosFinalizados MovimientoRRHHFinalizado[]
+  resumenesRRHH          ResumenMesRRHH[]
+  saldoPersona           SaldoPersona?
+  usoDevolucion          UsoDevolucion[]
 }
 
 model Vale {
@@ -66,13 +66,14 @@ model Vale {
 }
 
 model Rol {
-  id          Int       @id @default(autoincrement())
-  nombre      String    @unique
-  descripcion String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  usuarios    Usuario[]
-  permisos    Permiso[] @relation("PermisoToRol")
+  id              Int               @id @default(autoincrement())
+  nombre          String            @unique
+  descripcion     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  usuarios        Usuario[]
+  NotificacionRol NotificacionRol[]
+  permisos        Permiso[]         @relation("PermisoToRol")
 }
 
 model Permiso {
@@ -101,23 +102,24 @@ model Usuario {
   cambiosMoneda           CambioMoneda[]        @relation("UsuarioCambioMoneda")
   cotizaciones            Cotizacion[]          @relation("UsuarioCotizacion")
   depositos               DepositoBancario[]
+  gastos                  Gasto[]
   movimientosCaja         MovimientoCaja[]
   operacionesBancarias    OperacionBancaria[]
   pagosCajas              Pago[]
+  sueldosMinimos          SueldoMinimo[]        @relation("UsuarioSueldoMinimo")
   persona                 Persona?              @relation("PersonaUsuario", fields: [personaId], references: [id])
   rol                     Rol                   @relation(fields: [rolId], references: [id])
   valesCreados            Vale[]                @relation("UsuarioCreadorVale")
   caja_mayor_movimientos  CajaMayorMovimiento[]
   conteos                 Conteo[]
   movimientosFarmacia     MovimientoFarmacia[]  @relation("UsuarioMovimientoFarmacia")
+  movimientosRRHHCargados MovimientoRRHH[]
+  NotificacionUsuario     NotificacionUsuario[]
+  resumenesFinalizados    ResumenMesRRHH[]      @relation("UsuarioFinalizaMes")
+  resumenesReabiertos     ResumenMesRRHH[]      @relation("UsuarioReabreMes")
   usoDevolucion           UsoDevolucion[]
   wepaGsConfigs           WepaGsConfig[]        @relation("UsuarioWepaGsConfig")
   wepaUsdConfigs          WepaUsdConfig[]       @relation("UsuarioWepaUsdConfig")
-  sueldosMinimos          SueldoMinimo[]        @relation("UsuarioSueldoMinimo")
-  movimientosRRHHCargados MovimientoRRHH[]
-  resumenesFinalizados    ResumenMesRRHH[]        @relation("UsuarioFinalizaMes")
-  resumenesReabiertos     ResumenMesRRHH[]        @relation("UsuarioReabreMes")
-  gastos                  Gasto[]
 }
 
 model Cotizacion {
@@ -185,8 +187,8 @@ model Sucursal {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   cajas     Caja[]
-  maletines Maletin[]
   gastos    Gasto[]
+  maletines Maletin[]
 }
 
 model Maletin {
@@ -571,58 +573,48 @@ model InfoPanel {
   updatedAt      DateTime @updatedAt
 }
 
-// --- Nuevo Modelo para Movimientos RRHH ---
 model MovimientoRRHH {
   id          Int      @id @default(autoincrement())
   personaId   Int      @map("persona_id")
   mes         Int
   anio        Int
-  fecha       DateTime @default(now()) // Fecha exacta de carga
-  tipo        String // Bonificacion, Descuento, Multa, Compras, Adelanto, Jornales
+  fecha       DateTime @default(now())
+  tipo        String
   observacion String?
-  moneda      String // GS, USD, BRL
+  moneda      String
   monto       Decimal  @db.Decimal(15, 2)
-  usuarioId   Int      @map("usuario_id") // Quien cargó el movimiento
+  usuarioId   Int      @map("usuario_id")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  persona Persona @relation(fields: [personaId], references: [id])
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  persona     Persona  @relation(fields: [personaId], references: [id])
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
 
   @@index([personaId, anio, mes])
   @@index([usuarioId])
   @@map("movimientos_rrhh")
 }
 
-// --- Modelo para Resumen Mensual de RRHH Finalizado ---
 model ResumenMesRRHH {
-  id                  Int       @id @default(autoincrement())
-  personaId           Int       @map("persona_id")
-  mes                 Int
-  anio                Int
-  fechaFinalizacion   DateTime  @default(now()) @map("fecha_finalizacion")
-  finalizado          Boolean   @default(true)
-  usuarioFinalizaId   Int       @map("usuario_finaliza_id") // Quien finalizó el mes
-  usuarioReabreId     Int?      @map("usuario_reabre_id") // Quien reabrió el mes, si aplica
-  fechaReapertura     DateTime? @map("fecha_reapertura") // Fecha de reapertura si fue reabierto
-  // Cotizaciones utilizadas al finalizar (serializadas como JSON)
-  cotizacionesUsadas  Json?     @map("cotizaciones_usadas") // [{moneda: 'USD', valor: 7250}, {moneda: 'BRL', valor: 1250}]
-  // Totales para cada moneda
-  totalGS             Decimal   @db.Decimal(15, 2) @map("total_gs")
-  totalUSD            Decimal   @db.Decimal(15, 2) @default(0) @map("total_usd")
-  totalBRL            Decimal   @db.Decimal(15, 2) @default(0) @map("total_brl")
-  // Total final en guaraníes (incluye la conversión)
-  totalFinalGS        Decimal   @db.Decimal(15, 2) @map("total_final_gs")
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  // Relaciones
-  persona             Persona   @relation(fields: [personaId], references: [id])
-  usuarioFinaliza     Usuario   @relation("UsuarioFinalizaMes", fields: [usuarioFinalizaId], references: [id])
-  usuarioReabre       Usuario?  @relation("UsuarioReabreMes", fields: [usuarioReabreId], references: [id])
-  
-  // Movimientos finalizados asociados a este resumen
-  movimientos         MovimientoRRHHFinalizado[]
+  id                 Int                        @id @default(autoincrement())
+  personaId          Int                        @map("persona_id")
+  mes                Int
+  anio               Int
+  fechaFinalizacion  DateTime                   @default(now()) @map("fecha_finalizacion")
+  finalizado         Boolean                    @default(true)
+  usuarioFinalizaId  Int                        @map("usuario_finaliza_id")
+  usuarioReabreId    Int?                       @map("usuario_reabre_id")
+  fechaReapertura    DateTime?                  @map("fecha_reapertura")
+  cotizacionesUsadas Json?                      @map("cotizaciones_usadas")
+  totalGS            Decimal                    @map("total_gs") @db.Decimal(15, 2)
+  totalUSD           Decimal                    @default(0) @map("total_usd") @db.Decimal(15, 2)
+  totalBRL           Decimal                    @default(0) @map("total_brl") @db.Decimal(15, 2)
+  totalFinalGS       Decimal                    @map("total_final_gs") @db.Decimal(15, 2)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  movimientos        MovimientoRRHHFinalizado[]
+  persona            Persona                    @relation(fields: [personaId], references: [id])
+  usuarioFinaliza    Usuario                    @relation("UsuarioFinalizaMes", fields: [usuarioFinalizaId], references: [id])
+  usuarioReabre      Usuario?                   @relation("UsuarioReabreMes", fields: [usuarioReabreId], references: [id])
 
   @@unique([personaId, mes, anio])
   @@index([personaId])
@@ -630,27 +622,23 @@ model ResumenMesRRHH {
   @@map("resumenes_mes_rrhh")
 }
 
-// --- Modelo para Movimientos RRHH Finalizados ---
 model MovimientoRRHHFinalizado {
-  id               Int           @id @default(autoincrement())
-  resumenMesId     Int           @map("resumen_mes_id")
-  movimientoOrigId Int?          @map("movimiento_orig_id") // ID del movimiento original
-  personaId        Int           @map("persona_id")
+  id               Int            @id @default(autoincrement())
+  resumenMesId     Int            @map("resumen_mes_id")
+  movimientoOrigId Int?           @map("movimiento_orig_id")
+  personaId        Int            @map("persona_id")
   mes              Int
   anio             Int
   fecha            DateTime
-  tipo             String        // Bonificacion, Descuento, Multa, Compras, Adelanto, Jornales
+  tipo             String
   observacion      String?
-  moneda           String        // GS, USD, BRL
-  monto            Decimal       @db.Decimal(15, 2)
-  // Añadimos campo para el monto en guaraníes en caso de moneda extranjera
-  montoConvertido  Decimal?      @db.Decimal(15, 2) @map("monto_convertido_gs")
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  // Relaciones
-  resumenMes       ResumenMesRRHH @relation(fields: [resumenMesId], references: [id])
+  moneda           String
+  monto            Decimal        @db.Decimal(15, 2)
+  montoConvertido  Decimal?       @map("monto_convertido_gs") @db.Decimal(15, 2)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   persona          Persona        @relation(fields: [personaId], references: [id])
+  resumenMes       ResumenMesRRHH @relation(fields: [resumenMesId], references: [id])
 
   @@index([resumenMesId])
   @@index([personaId])
@@ -659,52 +647,102 @@ model MovimientoRRHHFinalizado {
 }
 
 model CategoriaGasto {
-  id            Int                @id @default(autoincrement())
-  nombre        String             @unique
-  activo        Boolean            @default(true)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  subcategorias SubcategoriaGasto[]
+  id            Int                 @id @default(autoincrement())
+  nombre        String              @unique
+  activo        Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
   gastos        Gasto[]
+  subcategorias SubcategoriaGasto[]
 }
 
 model SubcategoriaGasto {
-  id           Int           @id @default(autoincrement())
-  nombre       String
-  categoriaId  Int
-  activo       Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  categoria    CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
-  gastos       Gasto[]
+  id          Int            @id @default(autoincrement())
+  nombre      String
+  categoriaId Int
+  activo      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  gastos      Gasto[]
+  categoria   CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
 
   @@unique([nombre, categoriaId])
   @@index([categoriaId])
 }
 
 model Gasto {
-  id                Int               @id @default(autoincrement())
-  fecha             DateTime          @default(now())
-  descripcion       String
-  monto             Decimal           @db.Decimal(15, 2)
-  moneda            String            @default("GS") // GS, USD, BRL
-  categoriaId       Int
-  subcategoriaId    Int?
-  sucursalId        Int?              // null significa "General/Adm"
-  comprobante       String?
-  observaciones     String?
-  usuarioId         Int
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
-  // Relaciones
-  categoria         CategoriaGasto    @relation(fields: [categoriaId], references: [id])
-  subcategoria      SubcategoriaGasto? @relation(fields: [subcategoriaId], references: [id])
-  sucursal          Sucursal?         @relation(fields: [sucursalId], references: [id])
-  usuario           Usuario           @relation(fields: [usuarioId], references: [id])
-  
+  id             Int                @id @default(autoincrement())
+  fecha          DateTime           @default(now())
+  descripcion    String
+  monto          Decimal            @db.Decimal(15, 2)
+  moneda         String             @default("GS")
+  categoriaId    Int
+  subcategoriaId Int?
+  sucursalId     Int?
+  comprobante    String?
+  observaciones  String?
+  usuarioId      Int
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  categoria      CategoriaGasto     @relation(fields: [categoriaId], references: [id])
+  subcategoria   SubcategoriaGasto? @relation(fields: [subcategoriaId], references: [id])
+  sucursal       Sucursal?          @relation(fields: [sucursalId], references: [id])
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+
   @@index([categoriaId])
   @@index([subcategoriaId])
   @@index([sucursalId])
   @@index([usuarioId])
+}
+
+model Notificacion {
+  id            Int                   @id @default(autoincrement())
+  titulo        String                @db.VarChar(100)
+  mensaje       String
+  tipo          String                @db.VarChar(20)
+  fechaCreacion DateTime              @default(now()) @map("fecha_creacion")
+  url           String?               @db.VarChar(255)
+  modulo        String?               @db.VarChar(50)
+  esGlobal      Boolean               @default(false) @map("es_global")
+  entidadTipo   String?               @map("entidad_tipo") @db.VarChar(50)
+  entidadId     String?               @map("entidad_id") @db.VarChar(50)
+  accion        String?               @db.VarChar(50)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  roles         NotificacionRol[]
+  usuarios      NotificacionUsuario[]
+
+  @@map("notificaciones")
+}
+
+model NotificacionUsuario {
+  id             Int          @id @default(autoincrement())
+  notificacionId Int          @map("notificacion_id")
+  usuarioId      Int          @map("usuario_id")
+  leida          Boolean      @default(false)
+  fechaLectura   DateTime?    @map("fecha_lectura")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  notificacion   Notificacion @relation(fields: [notificacionId], references: [id], onDelete: Cascade)
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([notificacionId, usuarioId])
+  @@index([notificacionId])
+  @@index([usuarioId])
+  @@map("notificaciones_usuarios")
+}
+
+model NotificacionRol {
+  id             Int          @id @default(autoincrement())
+  notificacionId Int          @map("notificacion_id")
+  rolId          Int          @map("rol_id")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  notificacion   Notificacion @relation(fields: [notificacionId], references: [id], onDelete: Cascade)
+  rol            Rol          @relation(fields: [rolId], references: [id], onDelete: Cascade)
+
+  @@unique([notificacionId, rolId])
+  @@index([notificacionId])
+  @@index([rolId])
+  @@map("notificaciones_roles")
 }

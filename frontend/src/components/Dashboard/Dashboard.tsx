@@ -22,13 +22,12 @@ import {
   Button,
   Paper,
   Badge,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  People as PeopleIcon,
   Inventory as InventoryIcon,
-  ShoppingCart as ShoppingCartIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
   Groups as GroupsIcon,
@@ -41,14 +40,13 @@ import {
   PointOfSale as PointOfSaleIcon,
   Inventory2 as Inventory2Icon,
   CreditCard as CreditCardIcon,
-  ArrowDownward as ArrowDownwardIcon,
   MonetizationOn as MonetizationOnIcon,
   Calculate as CalculateIcon,
-  Notifications as NotificationsIcon,
   Image as ImageIcon,
   AttachMoney as AttachMoneyIcon,
   HealthAndSafety as HealthAndSafetyIcon,
   Category as CategoryIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import Usuarios from '../Usuarios/Usuarios';
@@ -85,6 +83,10 @@ import CategoriasGastos from '../Configuracion/CategoriasGastos';
 import GestionGastos from '../Controles/GestionGastos';
 import LucroScreen from '../SaldosMonetarios/LucroScreen';
 import ActivoPasivo from '../Controles/ActivoPasivo';
+import NotificacionesMenu from '../Notificaciones/NotificacionesMenu';
+import NotificacionesPage from '../../pages/Notificaciones/NotificacionesPage';
+import TestNotificaciones from '../../pages/Notificaciones/TestNotificaciones';
+import GestionNotificaciones from '../Configuracion/GestionNotificaciones';
 
 // Definir interfaz para elementos del menú
 interface SubMenuItem {
@@ -281,13 +283,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
       requiredAction: 'CAJAS',
       subItems: [
         { 
-          text: 'Cajas', 
-          icon: <PointOfSaleIcon />, 
-          path: 'pdv/cajas',
-          requiredModule: 'PDV',
-          requiredAction: 'CAJAS'
-        },
-        { 
           text: 'Diferencias', 
           icon: <CalculateIcon />,
           path: 'diferencias',
@@ -446,6 +441,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
           path: 'categorias-gastos',
           requiredModule: 'CONFIGURACION', 
           requiredAction: 'USUARIOS'
+        },
+        { 
+          text: 'Notificaciones', 
+          icon: <NotificationsIcon />,
+          path: 'gestion-notificaciones',
+          requiredModule: 'CONFIGURACION', 
+          requiredAction: 'USUARIOS'
         }
       ]
     },
@@ -542,14 +544,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
             </Typography>
           )}
 
-          {/* Icono de Notificaciones */}
-          <IconButton color="inherit" sx={{ mr: 1 }}>
-            <Badge badgeContent={3} color="error"> {/* Contador temporal */}
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
+          {/* Componente de Notificaciones */}
+          <NotificacionesMenu />
 
+          {/* Indicador de estado del servidor */}
           <ServerStatusIndicator />
+          
+          {/* Botón de ayuda/diagnóstico */}
+          <Tooltip title="Herramientas de diagnóstico">
+            <IconButton
+              color="inherit"
+              onClick={() => navigate('/notificaciones/test')}
+              sx={{ ml: 1 }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
+          
           <IconButton color="inherit" onClick={handleLogoutClick}>
             <LogoutIcon />
           </IconButton>
@@ -807,12 +818,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
           <Route path="categorias-gastos" element={
             hasPermission('CONFIGURACION', 'USUARIOS') ? <CategoriasGastos /> : <Navigate to="acceso-denegado" />
           } />
+          <Route path="gestion-notificaciones" element={
+            hasPermission('CONFIGURACION', 'USUARIOS') ? <GestionNotificaciones /> : <Navigate to="acceso-denegado" />
+          } />
           <Route path="controles/gastos" element={
             hasPermission('PDV', 'CONTROL_CAJAS') ? <GestionGastos /> : <Navigate to="acceso-denegado" />
           } />
           <Route path="controles/activo-pasivo" element={
             hasPermission('PDV', 'CONTROL_CAJAS') ? <ActivoPasivo /> : <Navigate to="acceso-denegado" />
           } />
+          <Route path="notificaciones" element={<NotificacionesPage />} />
+          <Route path="notificaciones/test" element={<TestNotificaciones />} />
           <Route path="acceso-denegado" element={
             <Paper 
               elevation={2}

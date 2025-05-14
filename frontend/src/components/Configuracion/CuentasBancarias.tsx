@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -130,6 +130,9 @@ const CuentasBancarias: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { user } = useAuth();
 
+  const bancoInputRef = useRef<HTMLInputElement>(null); // Ref for Banco input
+  const submitButtonRef = useRef<HTMLButtonElement>(null); // Ref for Guardar button
+
   // Estado para el formulario
   const [formData, setFormData] = useState<Omit<CuentaBancaria, 'id'>>({
     banco: '',
@@ -179,6 +182,33 @@ const CuentasBancarias: React.FC = () => {
   // Seleccionar texto al hacer focus
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
+  };
+
+  // Manejar navegación con Enter
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter' && !(event.target instanceof HTMLTextAreaElement)) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const focusableElements = Array.from(
+        form.querySelectorAll('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled]), [role="button"]:not([disabled])') // Added [role="button"] for Select components
+      ).filter(el => {
+        const style = window.getComputedStyle(el as HTMLElement);
+        return (el as HTMLElement).offsetParent !== null && style.display !== 'none' && style.visibility !== 'hidden';
+      }) as HTMLElement[];
+
+      const currentFocusedIndex = focusableElements.findIndex(el => el === document.activeElement || el.contains(document.activeElement));
+
+      if (currentFocusedIndex !== -1 && currentFocusedIndex < focusableElements.length - 1) {
+        const nextElement = focusableElements[currentFocusedIndex + 1];
+        nextElement?.focus();
+      } else if (currentFocusedIndex === focusableElements.length - 2) { // Assuming Cancel is before Submit
+        const submitBtn = submitButtonRef.current;
+        if (submitBtn && !submitBtn.disabled) {
+          submitBtn.focus();
+        }
+      }
+    }
   };
 
   // Abrir diálogo para crear una nueva cuenta bancaria
@@ -395,12 +425,24 @@ const CuentasBancarias: React.FC = () => {
       )}
 
       {/* Diálogo para crear/editar cuenta bancaria */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={dialogOpen} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        TransitionProps={{
+          onEntered: () => {
+            if (!editingCuenta && bancoInputRef.current) {
+              bancoInputRef.current.focus();
+            }
+          }
+        }}
+      >
         <DialogTitle>
           {editingCuenta ? 'Editar Cuenta Bancaria' : 'Nueva Cuenta Bancaria'}
         </DialogTitle>
         <DialogContent>
-          <Box component="form" sx={{ mt: 1 }}>
+          <Box component="form" sx={{ mt: 1 }} onKeyDown={handleKeyDown}>
             <TextField
               fullWidth
               margin="normal"
@@ -410,6 +452,7 @@ const CuentasBancarias: React.FC = () => {
               onChange={handleInputChange}
               required
               onFocus={handleFocus}
+              inputRef={bancoInputRef}
             />
             <TextField
               fullWidth
@@ -457,6 +500,7 @@ const CuentasBancarias: React.FC = () => {
             variant="contained" 
             color="primary"
             disabled={loading}
+            ref={submitButtonRef}
           >
             {loading ? <CircularProgress size={24} /> : 'Guardar'}
           </Button>

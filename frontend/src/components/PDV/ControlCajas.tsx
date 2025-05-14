@@ -30,6 +30,7 @@ import {
   IconButton,
   Divider,
   Stack,
+  GlobalStyles
 } from '@mui/material';
 import { 
   Visibility as VisibilityIcon,
@@ -281,6 +282,33 @@ const ControlCajas: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      <GlobalStyles
+        styles={{
+          '*::-webkit-scrollbar': {
+            width: '12px',
+            height: '12px',
+          },
+          '*::-webkit-scrollbar-track': {
+            backgroundColor: '#121212', // Casi negro
+          },
+          '*::-webkit-scrollbar-thumb': {
+            backgroundColor: '#333', // Gris muy oscuro
+            borderRadius: '6px',
+            '&:hover': {
+              backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+            },
+          },
+          'html': {
+            scrollbarColor: '#333 #121212', // Formato: thumb track
+            scrollbarWidth: 'thin',
+          },
+          'body': {
+            scrollbarColor: '#333 #121212',
+            scrollbarWidth: 'thin',
+          }
+        }}
+      />
+      
       <Box 
         sx={{ 
           display: 'flex', 

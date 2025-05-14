@@ -30,6 +30,7 @@ const configuracion_routes_1 = __importDefault(require("./routes/configuracion.r
 const carousel_routes_1 = __importDefault(require("./routes/carousel.routes"));
 const rrhhRoutes_1 = __importDefault(require("./routes/rrhhRoutes"));
 const ips_routes_1 = __importDefault(require("./routes/ips.routes"));
+const notificacion_routes_1 = __importDefault(require("./routes/notificacion.routes"));
 const app = (0, express_1.default)();
 // Configuración de CORS para permitir peticiones desde cualquier origen durante desarrollo
 app.use((0, cors_1.default)({
@@ -73,6 +74,8 @@ app.use('/api/carousel', carousel_routes_1.default);
 app.use('/api/rrhh', rrhhRoutes_1.default);
 // Registrar las rutas IPS
 app.use('/api/ips', ips_routes_1.default);
+// Registrar las rutas de notificaciones
+app.use('/api/notificaciones', notificacion_routes_1.default);
 // Middleware para imprimir cada solicitud que llega
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);

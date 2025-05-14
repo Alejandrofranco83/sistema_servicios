@@ -58,6 +58,7 @@ const categorias_gastos_routes_1 = __importDefault(require("./routes/categorias-
 const gastos_routes_1 = __importDefault(require("./routes/gastos.routes")); // Importar rutas para gestión de gastos
 const movimientoCaja_routes_1 = __importDefault(require("./routes/movimientoCaja.routes")); // Importar rutas para movimientos de caja
 const activoPasivoRoutes_1 = __importDefault(require("./routes/activoPasivoRoutes")); // Importar rutas para activo pasivo
+const notificacion_routes_1 = __importDefault(require("./routes/notificacion.routes")); // Importar rutas de notificaciones
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
@@ -114,6 +115,10 @@ app.use('/api/conteos', conteo_routes_1.default);
 app.use('/api/caja_mayor_movimientos', caja_mayor_movimientos_routes_1.default);
 app.use('/api/cotizaciones-externas', cotizacion_externa_routes_1.default);
 app.use('/api/diferencias', diferencias_routes_1.default);
+// Registrar rutas de notificaciones
+console.log('[DEBUG] Intentando registrar /api/notificaciones...');
+app.use('/api/notificaciones', notificacion_routes_1.default);
+console.log('[DEBUG] Ruta /api/notificaciones registrada en index.ts');
 console.log('[DEBUG] Intentando registrar /api/movimientos-farmacia...');
 app.use('/api/movimientos-farmacia', movimientoFarmacia_routes_1.default);
 console.log('[DEBUG] Ruta /api/movimientos-farmacia registrada en index.ts');

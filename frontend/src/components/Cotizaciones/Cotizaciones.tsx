@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -40,6 +40,8 @@ const Cotizaciones: React.FC = () => {
     valorReal: 0
   });
   
+  const guardarButtonRef = useRef<HTMLButtonElement>(null); // Ref for the save button
+
   // Estado para validación de formulario
   const [formErrors, setFormErrors] = useState({
     valorDolar: '',
@@ -82,6 +84,34 @@ const Cotizaciones: React.FC = () => {
   // Manejar el foco en los campos de texto
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     event.target.select();
+  };
+
+  // Manejar navegación con Enter
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter' && !(event.target instanceof HTMLTextAreaElement)) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const focusableElements = Array.from(
+        form.querySelectorAll('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])')
+      ).filter(el => {
+          const style = window.getComputedStyle(el as HTMLElement);
+          return (el as HTMLElement).offsetParent !== null && style.display !== 'none' && style.visibility !== 'hidden';
+      }) as HTMLElement[];
+
+      const currentFocusedIndex = focusableElements.findIndex(el => el === document.activeElement);
+
+      if (currentFocusedIndex !== -1 && currentFocusedIndex < focusableElements.length - 1) {
+        const nextElement = focusableElements[currentFocusedIndex + 1];
+        nextElement?.focus();
+      } else if (currentFocusedIndex === focusableElements.length - 2) { // -2 because Cancelar is before Guardar
+        // If Enter is pressed on the last input field, focus the Guardar button
+        const saveButton = guardarButtonRef.current;
+        if (saveButton && !saveButton.disabled) {
+            saveButton.focus();
+        }
+      }
+    }
   };
 
   // Manejar el envío del formulario
@@ -237,7 +267,7 @@ const Cotizaciones: React.FC = () => {
       {/* Diálogo para crear nueva cotización */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Nueva Cotización</DialogTitle>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} >
           <DialogContent>
             <TextField
               name="valorDolar"
@@ -280,6 +310,7 @@ const Cotizaciones: React.FC = () => {
               color="primary" 
               variant="contained"
               disabled={loading || formData.valorDolar <= 0 || formData.valorReal <= 0}
+              ref={guardarButtonRef}
             >
               {loading ? <CircularProgress size={24} /> : 'Guardar'}
             </Button>

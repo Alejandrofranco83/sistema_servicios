@@ -27,7 +27,8 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Tooltip
+  Tooltip,
+  GlobalStyles
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -335,6 +336,34 @@ const BalanceAquipago: React.FC = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
       <Box sx={{ p: 3 }}>
+        {/* Aplicar estilos globales de scrollbar */}
+        <GlobalStyles
+          styles={{
+            '*::-webkit-scrollbar': {
+              width: '12px',
+              height: '12px',
+            },
+            '*::-webkit-scrollbar-track': {
+              backgroundColor: '#121212', // Casi negro
+            },
+            '*::-webkit-scrollbar-thumb': {
+              backgroundColor: '#333', // Gris muy oscuro
+              borderRadius: '6px',
+              '&:hover': {
+                backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+              },
+            },
+            'html': {
+              scrollbarColor: '#333 #121212', // Formato: thumb track
+              scrollbarWidth: 'thin',
+            },
+            'body': {
+              scrollbarColor: '#333 #121212',
+              scrollbarWidth: 'thin',
+            }
+          }}
+        />
+
         <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
           Balance Aqui Pago
         </Typography>

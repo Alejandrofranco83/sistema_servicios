@@ -13,7 +13,8 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
-  Alert
+  Alert,
+  GlobalStyles
 } from '@mui/material';
 import {
   AccountBalance as AccountBalanceIcon,
@@ -124,6 +125,13 @@ const ActivoPasivo: React.FC = () => {
   useEffect(() => {
     cargarBalances();
   }, [cotizacionVigente]);
+
+  // Agregar un efecto adicional para asegurar que se calcule el balance
+  useEffect(() => {
+    if (!loading && balances.some(b => b.monto > 0)) {
+      calcularTotales();
+    }
+  }, [loading, balances]);
 
   // Función para cargar el balance de farmacia
   const cargarBalanceFarmacia = async () => {
@@ -414,49 +422,61 @@ const ActivoPasivo: React.FC = () => {
         setMensajeSnackbar('No se pudo obtener la cotización vigente');
         setSeveridadSnackbar('error');
         setOpenSnackbar(true);
+        setLoading(false);
+        return; // Salir temprano si no hay cotización
       } else {
         console.log('Cotización vigente lista para cálculos:', cotizacionVigente);
       }
       
-      // Obtener balance de farmacia real desde la API
-      const balanceFarmaciaReal = await cargarBalanceFarmacia();
+      // Crear un nuevo array para los balances
+      const nuevosBalances = [...balances];
       
-      // Obtener balance de personas real desde la API
-      const balancePersonasReal = await cargarBalancePersonas();
-      
-      // Obtener balance de Aqui Pago real desde la API
-      const balanceAquipagoReal = await cargarBalanceAquipago();
-      
-      // Obtener balance de Wepa Gs real desde la API
-      const balanceWepaGsReal = await cargarBalanceWepaGs();
-      
-      // Obtener balance de Wepa USD real desde la API
-      const balanceWepaUsdReal = await cargarBalanceWepaUsd();
-      
-      // Obtener el efectivo en cajas desde el nuevo endpoint
-      const efectivoEnCajas = await obtenerEfectivoEnCajas();
-      
-      setTimeout(() => {
-        setBalances(prevBalances => {
-          const nuevosBalances = [...prevBalances];
-          // Los balances de farmacia, personas, aquipago, wepa gs y wepa usd ya fueron actualizados
-          nuevosBalances[5].monto = efectivoEnCajas; // Efectivo en Cajas con valor real
-          nuevosBalances[6].monto = 6500000; // Saldos en Servicios
-          
-          return nuevosBalances;
-        });
+      try {
+        // Obtener balance de farmacia real desde la API
+        await cargarBalanceFarmacia();
         
-        // Calcular totales para el balance general
-        calcularTotales();
+        // Obtener balance de personas real desde la API
+        await cargarBalancePersonas();
         
-        setLoading(false);
-      }, 1000);
+        // Obtener balance de Aqui Pago real desde la API
+        await cargarBalanceAquipago();
+        
+        // Obtener balance de Wepa Gs real desde la API
+        await cargarBalanceWepaGs();
+        
+        // Obtener balance de Wepa USD real desde la API
+        await cargarBalanceWepaUsd();
+        
+        // Obtener el efectivo en cajas desde el nuevo endpoint
+        const efectivoEnCajas = await obtenerEfectivoEnCajas();
+        const indexEfectivo = nuevosBalances.findIndex(b => b.id === 'efectivo-cajas');
+        if (indexEfectivo !== -1) {
+          nuevosBalances[indexEfectivo].monto = efectivoEnCajas;
+        }
+        
+        // Obtener los saldos en servicios de todas las sucursales
+        const saldosServicios = await obtenerSaldosServicios();
+        const indexServicios = nuevosBalances.findIndex(b => b.id === 'saldos-servicios');
+        if (indexServicios !== -1) {
+          nuevosBalances[indexServicios].monto = saldosServicios;
+        }
+        
+        // Log de depuración para ver los valores antes de actualizar el estado
+        console.log('Balances cargados, actualizando estado:', nuevosBalances);
+        
+      } catch (error) {
+        console.error('Error al obtener datos específicos:', error);
+      }
+      
+      // Calcular totales después de actualizar balances
+      calcularTotales();
       
     } catch (error) {
       console.error('Error al cargar balances:', error);
       setMensajeSnackbar('Error al cargar los balances');
       setSeveridadSnackbar('error');
       setOpenSnackbar(true);
+    } finally {
       setLoading(false);
     }
   };
@@ -774,7 +794,226 @@ const ActivoPasivo: React.FC = () => {
     }
   };
 
-  // Calcular totales basados en los balances actuales
+  // Función para obtener los saldos de servicios de todas las sucursales
+  const obtenerSaldosServicios = async (): Promise<number> => {
+    try {
+      console.log('Obteniendo saldos en servicios desde el nuevo endpoint...');
+      const response = await axios.get(`${API_URL}/activo-pasivo/saldos-servicios`);
+      
+      if (!response.data || typeof response.data.totalSaldosServicios !== 'number') {
+        console.error('Respuesta inválida del endpoint de saldos en servicios:', response.data);
+        return obtenerSaldosServiciosAntiguo();
+      }
+      
+      const totalSaldos = response.data.totalSaldosServicios;
+      console.log(`Total saldos en servicios: ${totalSaldos}`);
+      
+      // Actualizar el ítem en el estado de balances
+      setBalances(balancesPrevios => {
+        const nuevosBalances = [...balancesPrevios];
+        const index = nuevosBalances.findIndex(b => b.id === 'saldos-servicios');
+        
+        if (index !== -1) {
+          nuevosBalances[index] = {
+            ...nuevosBalances[index],
+            monto: totalSaldos
+          };
+        }
+        
+        return nuevosBalances;
+      });
+      
+      return totalSaldos;
+    } catch (error) {
+      console.error('Error al obtener saldos en servicios:', error);
+      
+      // Si ocurre un error con el nuevo endpoint, intentar con el método antiguo
+      console.log('Intentando método alternativo para obtener saldos en servicios...');
+      return obtenerSaldosServiciosAntiguo();
+    }
+  };
+
+  // Método alternativo para obtener saldos en servicios
+  const obtenerSaldosServiciosAntiguo = async (): Promise<number> => {
+    try {
+      // Mapa para almacenar el último estado de saldos de servicios por sucursal
+      const saldosPorSucursal = new Map();
+      
+      // 1. Obtener TODAS las cajas cerradas
+      console.log('Obteniendo saldos de servicios de cajas cerradas...');
+      const respCajasCerradas = await axios.get(`${API_URL}/cajas?estado=cerrada`);
+      const cajasCerradas = respCajasCerradas.data || [];
+      console.log(`Encontradas ${cajasCerradas.length} cajas cerradas para verificar saldos de servicios`);
+      
+      // Procesar cada caja cerrada
+      cajasCerradas.forEach((caja: any) => {
+        // Verificar si la caja tiene información de saldos de servicios
+        if (caja.saldoFinal && caja.saldoFinal.servicios) {
+          const sucursalId = caja.sucursalId;
+          const cajaId = caja.cajaEnteroId;
+          
+          // Convertir la fecha a objeto Date para comparación correcta
+          let fechaCierre = new Date(0); // Inicializar con fecha mínima
+          if (caja.fechaCierre) {
+            fechaCierre = new Date(caja.fechaCierre);
+          }
+          
+          // Obtener los saldos de servicios
+          const saldoServicios = caja.saldoFinal.servicios || 0;
+          
+          console.log(`Sucursal ${sucursalId} - Caja cerrada ${cajaId}: Saldo Servicios=${saldoServicios}, Fecha=${fechaCierre.toISOString()}`);
+          
+          // Si la sucursal no está registrada, agregarla directamente
+          if (!saldosPorSucursal.has(sucursalId)) {
+            saldosPorSucursal.set(sucursalId, {
+              tipo: 'cierre',
+              cajaId,
+              fecha: fechaCierre,
+              fechaString: caja.fechaCierre,
+              saldoServicios
+            });
+            console.log(`✅ Registrada sucursal ${sucursalId} con saldo de servicios de cierre de caja ${cajaId}`);
+          } else {
+            // La sucursal ya existe, verificar si este cierre es más reciente
+            const sucursalExistente = saldosPorSucursal.get(sucursalId);
+            
+            // Solo comparamos con otros cierres (las aperturas siempre tienen prioridad)
+            if (sucursalExistente.tipo === 'cierre') {
+              const fechaExistente = new Date(sucursalExistente.fecha);
+              
+              // Si la fecha nueva es más reciente, actualizar
+              if (fechaCierre > fechaExistente) {
+                saldosPorSucursal.set(sucursalId, {
+                  tipo: 'cierre',
+                  cajaId,
+                  fecha: fechaCierre,
+                  fechaString: caja.fechaCierre,
+                  saldoServicios
+                });
+                console.log(`🔄 Actualizada sucursal ${sucursalId} con cierre más reciente (caja ${cajaId})`);
+              } else {
+                console.log(`❌ Descartado cierre de la sucursal ${sucursalId} (caja ${cajaId}) por ser más antiguo`);
+              }
+            } else {
+              console.log(`⏩ Ignorando cierre de la sucursal ${sucursalId} porque ya tiene un registro de apertura`);
+            }
+          }
+        }
+      });
+      
+      // 2. Obtener cajas abiertas (estas tienen prioridad sobre las cerradas)
+      console.log('Obteniendo saldos de servicios de cajas abiertas...');
+      const respCajas = await axios.get(`${API_URL}/cajas?estado=abierta`);
+      const cajasAbiertas = respCajas.data || [];
+      console.log(`Encontradas ${cajasAbiertas.length} cajas abiertas para verificar saldos de servicios`);
+      
+      // Ordenar cajas abiertas por fecha (de más reciente a más antigua)
+      cajasAbiertas.sort((a: any, b: any) => {
+        const fechaA = a.fechaApertura ? new Date(a.fechaApertura).getTime() : 0;
+        const fechaB = b.fechaApertura ? new Date(b.fechaApertura).getTime() : 0;
+        return fechaB - fechaA; // Orden descendente (más reciente primero)
+      });
+      
+      // Procesar cajas abiertas, que tienen prioridad sobre las cerradas
+      cajasAbiertas.forEach((caja: any) => {
+        // Verificar si la caja tiene información de saldos de servicios en saldo inicial
+        if (caja.saldoInicial && caja.saldoInicial.servicios !== undefined) {
+          const sucursalId = caja.sucursalId;
+          const cajaId = caja.cajaEnteroId;
+          
+          // Convertir la fecha a objeto Date para registro consistente
+          let fechaApertura = new Date(0);
+          if (caja.fechaApertura) {
+            fechaApertura = new Date(caja.fechaApertura);
+          }
+          
+          // Obtener saldo de servicios inicial
+          const saldoServicios = caja.saldoInicial.servicios || 0;
+          
+          console.log(`Sucursal ${sucursalId} - Caja abierta ${cajaId}: Saldo Servicios=${saldoServicios}, Fecha=${fechaApertura.toISOString()}`);
+          
+          // Si la sucursal ya tiene una entrada de apertura, verificar cuál es más reciente
+          if (saldosPorSucursal.has(sucursalId) && saldosPorSucursal.get(sucursalId).tipo === 'apertura') {
+            const sucursalExistente = saldosPorSucursal.get(sucursalId);
+            const fechaExistente = new Date(sucursalExistente.fecha);
+            
+            // Si la apertura actual es más antigua, no actualizamos
+            if (fechaApertura <= fechaExistente) {
+              console.log(`❌ Ignorando apertura más antigua de la sucursal ${sucursalId} (caja ${cajaId})`);
+              return; // Saltar a la siguiente iteración
+            }
+          }
+          
+          // Las cajas abiertas tienen prioridad o esta es más reciente que la existente
+          saldosPorSucursal.set(sucursalId, {
+            tipo: 'apertura',
+            cajaId,
+            fecha: fechaApertura,
+            fechaString: caja.fechaApertura,
+            saldoServicios
+          });
+          
+          console.log(`✅ Sucursal ${sucursalId} actualizada con saldo de servicios de apertura de caja ${cajaId}`);
+        }
+      });
+      
+      // 3. Calcular el total de saldos de servicios
+      let totalSaldosServicios = 0;
+      
+      // Limpiar el mapa para eliminar duplicados por sucursalId
+      const sucursalesUnicas = new Map();
+      saldosPorSucursal.forEach((sucursal, sucursalId) => {
+        // Si ya existe una sucursal con este ID, solo mantener la más reciente
+        if (sucursalesUnicas.has(sucursalId)) {
+          const sucursalExistente = sucursalesUnicas.get(sucursalId);
+          
+          // Comparar fechas y tipos
+          // Si la existente es apertura y la nueva es cierre, mantener apertura
+          if (sucursalExistente.tipo === 'apertura' && sucursal.tipo === 'cierre') {
+            console.log(`⚠️ Manteniendo apertura sobre cierre para sucursal ${sucursalId}`);
+            return; // Saltamos esta iteración
+          }
+          
+          // Si ambas son del mismo tipo, comparar fechas
+          if (sucursalExistente.tipo === sucursal.tipo) {
+            const fechaExistente = new Date(sucursalExistente.fecha);
+            const fechaNueva = new Date(sucursal.fecha);
+            
+            // Si la fecha existente es más reciente, mantenemos esa
+            if (fechaExistente >= fechaNueva) {
+              console.log(`⚠️ Manteniendo registro más reciente para sucursal ${sucursalId}`);
+              return; // Saltamos esta iteración
+            }
+          }
+        }
+        
+        // Si llegamos aquí, o no existe la sucursal o esta es más reciente/prioritaria
+        sucursalesUnicas.set(sucursalId, sucursal);
+      });
+      
+      console.log('===== RESUMEN DE SALDOS DE SERVICIOS POR SUCURSAL =====');
+      console.log(`Total sucursales: ${sucursalesUnicas.size}`);
+      
+      // Ahora calcular con el mapa limpio
+      sucursalesUnicas.forEach((sucursal, sucursalId) => {
+        // Sumar el saldo de servicios
+        totalSaldosServicios += sucursal.saldoServicios || 0;
+        
+        console.log(`Sucursal ${sucursalId}, Tipo: ${sucursal.tipo}, Caja: ${sucursal.cajaId}, Fecha: ${new Date(sucursal.fecha).toISOString()}`);
+        console.log(`Saldo Servicios: ${sucursal.saldoServicios}`);
+      });
+      
+      console.log('===== TOTAL SALDOS SERVICIOS =====');
+      console.log(`Total saldos en servicios: ${totalSaldosServicios} Gs (${sucursalesUnicas.size} sucursales)`);
+      
+      return totalSaldosServicios;
+    } catch (error) {
+      console.error('Error al obtener saldos en servicios usando el método antiguo:', error);
+      return 0;
+    }
+  };
+
+  // Función para calcular totales
   const calcularTotales = () => {
     // Verificar si tenemos cotización vigente para los cálculos
     if (!cotizacionVigente) {
@@ -782,14 +1021,99 @@ const ActivoPasivo: React.FC = () => {
       return;
     }
     
-    const activos = balances.reduce((acc, item) => 
-      acc + (item.moneda === 'GS' ? item.monto : item.monto * cotizacionVigente.valorDolar), 0);
-    const pasivos = 0; // Aquí se sumarían los pasivos si los hubiera
+    console.log('Calculando totales con balances:', balances);
+    
+    let activos = 0;
+    let pasivos = 0;
+
+    // Sumar cada ítem según corresponda
+    balances.forEach(item => {
+      if (!item) return; // Protección contra nulls
+      
+      const titulo = item.titulo.toLowerCase();
+      const monto = item.monto || 0;
+      
+      // ACTIVOS
+      // Farmacia nos debe (suma como activo)
+      if (item.id === 'balance-farmacia' && titulo.includes('nos debe')) {
+        activos += monto;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${monto}`);
+      }
+      // Personas nos deben (suma como activo)
+      else if (item.id === 'balance-personas' && titulo.includes('nos deben')) {
+        activos += monto;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${monto}`);
+      }
+      // Aqui Pago - En Haber (suma como activo)
+      else if (item.id === 'balance-aquipago' && titulo.includes('en haber')) {
+        activos += monto;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${monto}`);
+      }
+      // Wepa Gs - En Haber (suma como activo)
+      else if (item.id === 'balance-wepa-gs' && titulo.includes('en haber')) {
+        activos += monto;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${monto}`);
+      }
+      // Wepa USD - En Haber (suma como activo, convertido a guaraníes)
+      else if (item.id === 'balance-wepa-usd' && titulo.includes('en haber')) {
+        const valorConvertido = item.moneda === 'USD' ? convertirDolaresAGuaranies(monto) : monto;
+        activos += valorConvertido;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${valorConvertido} (convertido de USD: ${monto})`);
+      }
+      // Efectivo en Cajas (siempre suma como activo)
+      else if (item.id === 'efectivo-cajas') {
+        activos += monto;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${monto}`);
+      }
+      // Saldos en Servicios (siempre suma como activo)
+      else if (item.id === 'saldos-servicios') {
+        activos += monto;
+        console.log(`Sumando a ACTIVOS (${item.id}): ${monto}`);
+      }
+      
+      // PASIVOS
+      // Debemos a Farmacia (suma como pasivo)
+      if (item.id === 'balance-farmacia' && titulo.includes('debemos a farmacia')) {
+        pasivos += monto;
+        console.log(`Sumando a PASIVOS (${item.id}): ${monto}`);
+      }
+      // Debemos a Personas (suma como pasivo)
+      else if (item.id === 'balance-personas' && titulo.includes('debemos a personas')) {
+        pasivos += monto;
+        console.log(`Sumando a PASIVOS (${item.id}): ${monto}`);
+      }
+      // Aqui Pago - Por Depositar (suma como pasivo)
+      else if (item.id === 'balance-aquipago' && titulo.includes('por depositar')) {
+        pasivos += monto;
+        console.log(`Sumando a PASIVOS (${item.id}): ${monto}`);
+      }
+      // Wepa Gs - Por Depositar (suma como pasivo)
+      else if (item.id === 'balance-wepa-gs' && titulo.includes('por depositar')) {
+        pasivos += monto;
+        console.log(`Sumando a PASIVOS (${item.id}): ${monto}`);
+      }
+      // Wepa USD - Por Depositar (suma como pasivo, convertido a guaraníes)
+      else if (item.id === 'balance-wepa-usd' && titulo.includes('por depositar')) {
+        const valorConvertido = item.moneda === 'USD' ? convertirDolaresAGuaranies(monto) : monto;
+        pasivos += valorConvertido;
+        console.log(`Sumando a PASIVOS (${item.id}): ${valorConvertido} (convertido de USD: ${monto})`);
+      }
+    });
+    
+    console.log(`Total ACTIVOS: ${activos}, Total PASIVOS: ${pasivos}`);
     
     setTotalActivos(activos);
     setTotalPasivos(pasivos);
     setBalanceGeneral(activos - pasivos);
   };
+
+  // Agregar un efecto que se ejecuta cuando todos los balances están cargados
+  useEffect(() => {
+    if (!loading && cotizacionVigente) {
+      console.log('Ejecutando cálculo de totales después de carga...');
+      calcularTotales();
+    }
+  }, [loading, cotizacionVigente, balances]);
 
   // Función para formatear valores monetarios
   const formatearMonto = (monto: number, moneda: string) => {
@@ -805,6 +1129,34 @@ const ActivoPasivo: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
+      {/* Aplicar estilos globales de scrollbar */}
+      <GlobalStyles
+        styles={{
+          '*::-webkit-scrollbar': {
+            width: '12px',
+            height: '12px',
+          },
+          '*::-webkit-scrollbar-track': {
+            backgroundColor: '#121212', // Casi negro
+          },
+          '*::-webkit-scrollbar-thumb': {
+            backgroundColor: '#333', // Gris muy oscuro
+            borderRadius: '6px',
+            '&:hover': {
+              backgroundColor: '#444', // Ligeramente más claro al pasar el mouse
+            },
+          },
+          'html': {
+            scrollbarColor: '#333 #121212', // Formato: thumb track
+            scrollbarWidth: 'thin',
+          },
+          'body': {
+            scrollbarColor: '#333 #121212',
+            scrollbarWidth: 'thin',
+          }
+        }}
+      />
+
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
           <Grid item>
@@ -893,9 +1245,9 @@ const ActivoPasivo: React.FC = () => {
                 <Grid item xs={12} md={4}>
                   <Box sx={{ 
                     p: 2, 
-                    bgcolor: theme.palette.success.light,
+                    bgcolor: 'rgba(76, 175, 80, 0.12)',
                     borderRadius: 1,
-                    color: theme.palette.success.contrastText
+                    color: theme.palette.success.main
                   }}>
                     <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center' }}>
                       <TrendingUpIcon fontSize="small" sx={{ mr: 1 }} />
@@ -907,9 +1259,9 @@ const ActivoPasivo: React.FC = () => {
                 <Grid item xs={12} md={4}>
                   <Box sx={{ 
                     p: 2, 
-                    bgcolor: theme.palette.error.light,
+                    bgcolor: 'rgba(244, 67, 54, 0.12)',
                     borderRadius: 1,
-                    color: theme.palette.error.contrastText
+                    color: theme.palette.error.main
                   }}>
                     <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center' }}>
                       <TrendingDownIcon fontSize="small" sx={{ mr: 1 }} />
@@ -921,9 +1273,9 @@ const ActivoPasivo: React.FC = () => {
                 <Grid item xs={12} md={4}>
                   <Box sx={{ 
                     p: 2, 
-                    bgcolor: balanceGeneral >= 0 ? theme.palette.info.light : theme.palette.warning.light,
+                    bgcolor: balanceGeneral >= 0 ? 'rgba(33, 150, 243, 0.12)' : 'rgba(255, 152, 0, 0.12)',
                     borderRadius: 1,
-                    color: balanceGeneral >= 0 ? theme.palette.info.contrastText : theme.palette.warning.contrastText
+                    color: balanceGeneral >= 0 ? theme.palette.info.main : theme.palette.warning.main
                   }}>
                     <Typography variant="subtitle1">Balance Neto</Typography>
                     <Typography variant="h5">

@@ -355,6 +355,29 @@ const Vales: React.FC<ValesProps> = ({ open, onClose, onGuardarExito }) => {
     }
   }, [open]);
   
+  // Función para preparar monto para edición
+  const prepararMontoParaEdicion = (valorOriginal: number, tipoMoneda: TipoMoneda): string => {
+    if (tipoMoneda === 'PYG') {
+      // Para guaraníes, formatear con separador de miles
+      return valorOriginal.toLocaleString('es-PY').split(',')[0];
+    } else if (tipoMoneda === 'BRL') {
+      // Para reales, multiplicar por 100 y formatear con punto para miles y coma para decimales
+      const valor = valorOriginal.toFixed(2);
+      const [entero, decimal] = valor.split('.');
+      const enteroFormateado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return `${enteroFormateado},${decimal}`;
+    } else if (tipoMoneda === 'USD') {
+      // Para dólares, multiplicar por 100 y formatear con coma para miles y punto para decimales
+      const valor = valorOriginal.toFixed(2);
+      const [entero, decimal] = valor.split('.');
+      const enteroFormateado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return `${enteroFormateado}.${decimal}`;
+    }
+    
+    // Valor por defecto si no coincide ninguna moneda
+    return valorOriginal.toString();
+  };
+  
   // Función para resetear el formulario
   const resetearFormulario = () => {
     setBusquedaUsuario('');
@@ -383,39 +406,46 @@ const Vales: React.FC<ValesProps> = ({ open, onClose, onGuardarExito }) => {
   const handleMontoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let input = e.target.value;
     
-    if (moneda !== 'PYG') {
-      // Para reales y dólares, permitir decimales
-      input = input.replace(/[^\d.,]/g, '');
-      
-      if (input.includes(',')) {
-        const parts = input.split(',');
-        if (parts.length > 2) {
-          input = parts[0] + ',' + parts.slice(1).join('');
-        }
-        
-        if (parts[1] && parts[1].length > 2) {
-          parts[1] = parts[1].substring(0, 2);
-          input = parts[0] + ',' + parts[1];
-        }
-        
-        const entero = parts[0].replace(/\./g, '');
-        
-        let enteroFormateado = '';
-        if (entero) {
-          enteroFormateado = Number(entero).toLocaleString('es-PY').split(',')[0];
-        }
-        
-        input = enteroFormateado + ',' + parts[1];
-      } else {
-        const entero = input.replace(/\./g, '');
-        if (entero) {
-          input = Number(entero).toLocaleString('es-PY');
-        }
-      }
-    } else {
-      // Para guaraníes, solo números enteros
+    if (moneda === 'PYG') {
+      // Para guaraníes, solo números enteros con punto como separador de miles
       const value = input.replace(/[^\d]/g, '');
-      input = value ? Number(value).toLocaleString('es-PY') : '';
+      input = value ? Number(value).toLocaleString('es-PY').split(',')[0] : '';
+    } else if (moneda === 'BRL') {
+      // Para reales: formato con punto para miles y coma para decimales
+      const numericValue = input.replace(/\D/g, '');
+      if (numericValue === '') {
+        input = '';
+      } else {
+        // Asegurar que tengamos al menos 3 dígitos para tener formato con decimales
+        const paddedValue = numericValue.padStart(3, '0');
+        
+        // Separar enteros y decimales
+        const decimalPart = paddedValue.slice(-2);
+        const integerPart = paddedValue.slice(0, -2).replace(/^0+/, '') || '0'; // Quitar ceros iniciales
+        
+        // Formatear la parte entera con puntos para los miles
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        
+        input = `${formattedInteger},${decimalPart}`;
+      }
+    } else if (moneda === 'USD') {
+      // Para dólares: formato con coma para miles y punto para decimales
+      const numericValue = input.replace(/\D/g, '');
+      if (numericValue === '') {
+        input = '';
+      } else {
+        // Asegurar que tengamos al menos 3 dígitos para tener formato con decimales
+        const paddedValue = numericValue.padStart(3, '0');
+        
+        // Separar enteros y decimales
+        const decimalPart = paddedValue.slice(-2);
+        const integerPart = paddedValue.slice(0, -2).replace(/^0+/, '') || '0'; // Quitar ceros iniciales
+        
+        // Formatear la parte entera con comas para los miles (formato USA)
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        
+        input = `${formattedInteger}.${decimalPart}`;
+      }
     }
     
     setMonto(input);
@@ -425,9 +455,9 @@ const Vales: React.FC<ValesProps> = ({ open, onClose, onGuardarExito }) => {
   const obtenerSimboloMoneda = (tipoMoneda: TipoMoneda): string => {
     switch (tipoMoneda) {
       case 'PYG':
-        return 'Gs';
+        return 'G$';
       case 'USD':
-        return 'US$';
+        return 'U$D';
       case 'BRL':
         return 'R$';
       default:
@@ -473,10 +503,19 @@ const Vales: React.FC<ValesProps> = ({ open, onClose, onGuardarExito }) => {
       setLoading(true);
       setError(null);
       
-      // Parsear valores numéricos
+      // Parsear valores numéricos según el tipo de moneda
       let montoNumerico: number;
       if (moneda === 'PYG') {
+        // Para guaraníes, simplemente quitar los separadores de miles
         montoNumerico = parseInt(monto.replace(/\./g, ''), 10);
+      } else if (moneda === 'BRL') {
+        // Para reales, reemplazar los separadores y dividir por 100
+        const valorLimpio = monto.replace(/\./g, '').replace(',', '.');
+        montoNumerico = parseFloat(valorLimpio);
+      } else if (moneda === 'USD') {
+        // Para dólares, reemplazar los separadores y dividir por 100
+        const valorLimpio = monto.replace(/,/g, '');
+        montoNumerico = parseFloat(valorLimpio);
       } else {
         montoNumerico = parseFloat(monto.replace(/\./g, '').replace(',', '.'));
       }

@@ -247,22 +247,35 @@ export const CajasProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       setLoading(true);
       
-      // Convertir el ID de sucursal de 'SUC001' a '1'
-      let backendSucursalId = sucursalId;
-      if (sucursalId.startsWith('SUC')) {
-        // Extraer el número y convertirlo a string (SUC001 -> 1)
-        const numericId = parseInt(sucursalId.replace('SUC', ''), 10);
-        backendSucursalId = numericId.toString();
+      // Si el usuario es administrador, cargar todas las cajas
+      if (user && user.rol && user.rol.nombre.toUpperCase() === 'ADMINISTRADOR') {
+        // Usar la API que devuelve todas las cajas
+        const response = await axios.get('/api/cajas');
+        
+        // Ordenar cajas por fecha de apertura, de más reciente a menos reciente
+        const cajasOrdenadas = [...response.data].sort((a, b) => {
+          return new Date(b.fechaApertura).getTime() - new Date(a.fechaApertura).getTime();
+        });
+        
+        setCajas(cajasOrdenadas);
+      } else {
+        // Convertir el ID de sucursal de 'SUC001' a '1'
+        let backendSucursalId = sucursalId;
+        if (sucursalId.startsWith('SUC')) {
+          // Extraer el número y convertirlo a string (SUC001 -> 1)
+          const numericId = parseInt(sucursalId.replace('SUC', ''), 10);
+          backendSucursalId = numericId.toString();
+        }
+        
+        const response = await axios.get(`/api/cajas/sucursal/${backendSucursalId}`);
+        
+        // Ordenar cajas por fecha de apertura, de más reciente a menos reciente
+        const cajasOrdenadas = [...response.data].sort((a, b) => {
+          return new Date(b.fechaApertura).getTime() - new Date(a.fechaApertura).getTime();
+        });
+        
+        setCajas(cajasOrdenadas);
       }
-      
-      const response = await axios.get(`/api/cajas/sucursal/${backendSucursalId}`);
-      
-      // Ordenar cajas por fecha de apertura, de más reciente a menos reciente
-      const cajasOrdenadas = [...response.data].sort((a, b) => {
-        return new Date(b.fechaApertura).getTime() - new Date(a.fechaApertura).getTime();
-      });
-      
-      setCajas(cajasOrdenadas);
     } catch (error) {
       console.error('Error al cargar cajas:', error);
       setErrorMessage('Error al cargar las cajas de la sucursal');
@@ -386,9 +399,16 @@ export const CajasProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (!cajaSeleccionada) return;
     
     // Convertir los valores formateados a números
+    // Para guaraníes: quitar los puntos de separación de miles
     const montoPYG = formRetiro.montoPYG ? parseFloat(formRetiro.montoPYG.replace(/\./g, '')) : 0;
+    
+    // Para reales (BRL): formato brasileño (punto para miles, coma para decimales)
+    // Reemplazar los puntos y convertir la coma a punto
     const montoBRL = formRetiro.montoBRL ? parseFloat(formRetiro.montoBRL.replace(/\./g, '').replace(',', '.')) : 0;
-    const montoUSD = formRetiro.montoUSD ? parseFloat(formRetiro.montoUSD.replace(/\./g, '').replace(',', '.')) : 0;
+    
+    // Para dólares (USD): formato estadounidense (coma para miles, punto para decimales)
+    // Solo quitar las comas de separación de miles
+    const montoUSD = formRetiro.montoUSD ? parseFloat(formRetiro.montoUSD.replace(/,/g, '')) : 0;
     
     // Verificar que al menos un monto sea mayor que cero
     if (montoPYG <= 0 && montoBRL <= 0 && montoUSD <= 0) {
