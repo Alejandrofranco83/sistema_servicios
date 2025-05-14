@@ -23,6 +23,10 @@ interface TicketProps {
   diferenciaTotal?: number;
 }
 
+// Método tradicional de impresión (como respaldo)
+// Lo definimos aquí afuera para evitar problemas de referencia
+let imprimirTicketTradicional: () => void;
+
 // Componente para el contenido del ticket
 const TicketContenido: React.FC<TicketProps> = (
   { cajaSeleccionada, diferenciasEfectivo, diferenciasServicios, diferenciaTotal }
@@ -280,12 +284,9 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
     let totalRetirosPYG = 0;
     let totalRetirosBRL = 0;
     let totalRetirosUSD = 0;
-    
-    // Función interna para imprimir
-    const imprimirTicket = () => {
-      // Acceder a las diferencias desde props
-      const { diferenciasEfectivo, diferenciasServicios, diferenciaTotal } = props;
-      
+
+    // Método tradicional de impresión (como respaldo)
+    imprimirTicketTradicional = () => {
       // Crear un iframe oculto para la impresión
       const printIframe = document.createElement('iframe');
       printIframe.style.position = 'absolute';
@@ -419,23 +420,23 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
             </div>
           ` : ''}
           
-          ${!estaAbierta && diferenciasEfectivo ? `
+          ${!estaAbierta && props.diferenciasEfectivo ? `
             <div class="ticket-linea-divisoria">--------------------------------</div>
             <h4 class="ticket-subtitulo">DIFERENCIAS</h4>
             <div class="ticket-saldos">
-              ${diferenciaTotal !== undefined ? `
+              ${props.diferenciaTotal !== undefined ? `
                 <div class="ticket-linea">
                   <span class="ticket-concepto">Diferencia Total:</span>
-                  <span class="ticket-monto ${diferenciaTotal !== 0 ? (diferenciaTotal > 0 ? 'ticket-positivo' : 'ticket-negativo') : ''}">${formatearMontoConSeparadores(diferenciaTotal)}</span>
+                  <span class="ticket-monto ${props.diferenciaTotal !== 0 ? (props.diferenciaTotal > 0 ? 'ticket-positivo' : 'ticket-negativo') : ''}">${formatearMontoConSeparadores(props.diferenciaTotal)}</span>
                 </div>
               ` : ''}
             </div>
           ` : ''}
           
-          ${!estaAbierta && diferenciasServicios && diferenciasServicios.length > 0 ? `
+          ${!estaAbierta && props.diferenciasServicios && props.diferenciasServicios.length > 0 ? `
             <h4 class="ticket-subtitulo">DIFERENCIAS SERVICIOS</h4>
             <div class="ticket-saldos">
-              ${diferenciasServicios
+              ${props.diferenciasServicios
                 .filter((servicio: any) => servicio.servicio !== 'Efectivo')
                 .map((servicio: any) => `
                   <div class="ticket-linea">
@@ -492,7 +493,110 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
       }
     };
     
-    // Cargar los datos de retiros si es necesario
+    // Función para intentar usar la impresora térmica
+    const intentarImpresionTermica = async () => {
+      try {
+        // Importar dinámicamente el servicio
+        const module = await import('../../../services/ElectronPrinterService');
+        const electronPrinterService = module.default;
+        
+        // Acceder a las diferencias desde props
+        const { diferenciasEfectivo, diferenciasServicios, diferenciaTotal } = props;
+        
+        // Crear el contenido del ticket en formato de líneas para la impresora térmica
+        const ticketLines = [
+          // Información de encabezado
+          `COMPROBANTE DE CIERRE`,
+          `${cajaSeleccionada.sucursal?.nombre || 'N/A'}`,
+          `Fecha: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`,
+          `-`.repeat(32),
+          `Caja #${cajaSeleccionada.cajaEnteroId}`,
+          `Usuario: ${cajaSeleccionada.usuario}`,
+          `Apertura: ${format(new Date(cajaSeleccionada.fechaApertura), 'dd/MM/yyyy HH:mm', { locale: es })}`,
+          cajaSeleccionada.fechaCierre ? 
+            `Cierre: ${format(new Date(cajaSeleccionada.fechaCierre), 'dd/MM/yyyy HH:mm', { locale: es })}` : '',
+          `-`.repeat(32),
+          
+          // Saldos de apertura
+          `SALDOS DE APERTURA`,
+          `Guaraníes: ${formatearMontoConSeparadores(cajaSeleccionada.saldoInicial?.total?.PYG || 0)}`,
+          `Reales: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoInicial?.total?.BRL || 0)}`,
+          `Dólares: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoInicial?.total?.USD || 0)}`,
+          `-`.repeat(32),
+          
+          // Saldos de cierre
+          `SALDOS DE CIERRE`,
+          `Guaraníes: ${!estaAbierta ? formatearMontoConSeparadores(cajaSeleccionada.saldoFinal?.total?.PYG || 0) : '-'}`,
+          `Reales: ${!estaAbierta ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoFinal?.total?.BRL || 0) : '-'}`,
+          `Dólares: ${!estaAbierta ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoFinal?.total?.USD || 0) : '-'}`
+        ];
+        
+        // Agregar retiros si la caja está cerrada
+        if (!estaAbierta) {
+          ticketLines.push(`-`.repeat(32));
+          ticketLines.push(`RETIROS`);
+          ticketLines.push(`Guaraníes: ${formatearMontoConSeparadores(totalRetirosPYG)}`);
+          ticketLines.push(`Reales: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRetirosBRL)}`);
+          ticketLines.push(`Dólares: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRetirosUSD)}`);
+        }
+        
+        // Agregar diferencias si la caja está cerrada y hay diferencias
+        if (!estaAbierta && diferenciasEfectivo) {
+          ticketLines.push(`-`.repeat(32));
+          ticketLines.push(`DIFERENCIAS`);
+          if (diferenciaTotal !== undefined) {
+            const diferenciaFormatted = formatearMontoConSeparadores(diferenciaTotal);
+            ticketLines.push(`Diferencia Total: ${diferenciaFormatted}`);
+          }
+        }
+        
+        // Agregar diferencias de servicios si la caja está cerrada y hay diferencias
+        if (!estaAbierta && diferenciasServicios && diferenciasServicios.length > 0) {
+          ticketLines.push(`DIFERENCIAS SERVICIOS`);
+          diferenciasServicios
+            .filter((servicio: any) => servicio.servicio !== 'Efectivo')
+            .forEach((servicio: any) => {
+              const diferenciaFormatted = formatearMontoConSeparadores(servicio.diferencia);
+              ticketLines.push(`${servicio.servicio}: ${diferenciaFormatted}`);
+            });
+        }
+        
+        // Agregar firmas
+        ticketLines.push(`-`.repeat(32));
+        ticketLines.push(``);
+        ticketLines.push(``);
+        ticketLines.push(`      Firma Cajero      Firma Supervisor`);
+        
+        // Agregar pie de página
+        ticketLines.push(``);
+        ticketLines.push(`Impreso el: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: es })}`);
+        
+        // Filtrar líneas vacías
+        const filteredLines = ticketLines.filter(line => line !== '');
+        
+        // Crear el objeto TicketContent para imprimir
+        const ticketContent = {
+          header: 'COMPROBANTE DE CIERRE',
+          lines: filteredLines.slice(1), // Excluir el header ya que lo pasamos separado
+          footer: `Gracias por su preferencia`
+        };
+        
+        // Intentar imprimir usando la impresora térmica
+        const printResult = await electronPrinterService.printTicket(ticketContent);
+        
+        if (!printResult.success) {
+          console.error('Error al imprimir con impresora térmica:', printResult.error);
+          // Si falla la impresión térmica, usar el método tradicional
+          imprimirTicketTradicional();
+        }
+      } catch (error) {
+        console.error('Error al preparar la impresión térmica:', error);
+        // En caso de error, usar el método tradicional
+        imprimirTicketTradicional();
+      }
+    };
+    
+    // Cargar los datos de retiros si es necesario y luego imprimir
     (async () => {
       try {
         if (cajaSeleccionada && cajaSeleccionada.id) {
@@ -509,8 +613,11 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
         console.error('Error al cargar retiros para impresión:', error);
       }
       
-      // Continuar con la impresión
-      imprimirTicket();
+      // Intentar usar la impresora térmica
+      intentarImpresionTermica().catch(() => {
+        // Si hay error en la impresión térmica, usar método tradicional
+        imprimirTicketTradicional();
+      });
     })();
   };
   
