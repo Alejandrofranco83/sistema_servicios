@@ -284,7 +284,7 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
     let totalRetirosPYG = 0;
     let totalRetirosBRL = 0;
     let totalRetirosUSD = 0;
-
+    
     // Método tradicional de impresión (como respaldo)
     imprimirTicketTradicional = () => {
       // Crear un iframe oculto para la impresión
@@ -359,7 +359,9 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
           <div class="ticket-info">
             <p class="ticket-info-item">Caja #${cajaSeleccionada.cajaEnteroId}</p>
             <p class="ticket-info-item">Usuario: ${cajaSeleccionada.usuario}</p>
-            <p class="ticket-info-item">Apertura: ${format(new Date(cajaSeleccionada.fechaApertura), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
+            <p class="ticket-info-item">
+              Apertura: ${format(new Date(cajaSeleccionada.fechaApertura), 'dd/MM/yyyy HH:mm', { locale: es })}
+            </p>
             ${cajaSeleccionada.fechaCierre ? 
               `<p class="ticket-info-item">Cierre: ${format(new Date(cajaSeleccionada.fechaCierre), 'dd/MM/yyyy HH:mm', { locale: es })}</p>` : 
               ''}
@@ -456,7 +458,7 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
             </div>
             
             <div class="ticket-firma">
-              <div class="ticket-linea-firma">_______________</div>
+              <div className="ticket-linea-firma">_______________</div>
               <p>Firma Supervisor</p>
             </div>
           </div>
@@ -503,82 +505,669 @@ const TicketCierreCaja: React.FC<TicketProps> = (props) => {
         // Acceder a las diferencias desde props
         const { diferenciasEfectivo, diferenciasServicios, diferenciaTotal } = props;
         
-        // Crear el contenido del ticket en formato de líneas para la impresora térmica
-        const ticketLines = [
-          // Información de encabezado
-          `COMPROBANTE DE CIERRE`,
-          `${cajaSeleccionada.sucursal?.nombre || 'N/A'}`,
-          `Fecha: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`,
-          `-`.repeat(32),
-          `Caja #${cajaSeleccionada.cajaEnteroId}`,
-          `Usuario: ${cajaSeleccionada.usuario}`,
-          `Apertura: ${format(new Date(cajaSeleccionada.fechaApertura), 'dd/MM/yyyy HH:mm', { locale: es })}`,
-          cajaSeleccionada.fechaCierre ? 
-            `Cierre: ${format(new Date(cajaSeleccionada.fechaCierre), 'dd/MM/yyyy HH:mm', { locale: es })}` : '',
-          `-`.repeat(32),
-          
-          // Saldos de apertura
-          `SALDOS DE APERTURA`,
-          `Guaraníes: ${formatearMontoConSeparadores(cajaSeleccionada.saldoInicial?.total?.PYG || 0)}`,
-          `Reales: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoInicial?.total?.BRL || 0)}`,
-          `Dólares: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoInicial?.total?.USD || 0)}`,
-          `-`.repeat(32),
-          
-          // Saldos de cierre
-          `SALDOS DE CIERRE`,
-          `Guaraníes: ${!estaAbierta ? formatearMontoConSeparadores(cajaSeleccionada.saldoFinal?.total?.PYG || 0) : '-'}`,
-          `Reales: ${!estaAbierta ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoFinal?.total?.BRL || 0) : '-'}`,
-          `Dólares: ${!estaAbierta ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoFinal?.total?.USD || 0) : '-'}`
+        // Crear contenido HTML personalizado para la impresora térmica
+        const htmlContent = [
+          // Título principal centrado
+          {
+            type: 'text',
+            value: 'COMPROBANTE DE CIERRE',
+            style: { 
+              fontSize: '15px', 
+              fontWeight: 'bold', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          },
+          // Sucursal centrada
+          {
+            type: 'text',
+            value: `${cajaSeleccionada.sucursal?.nombre || 'CENTRAL'}`,
+            style: { 
+              fontSize: '14px', 
+              fontWeight: 'bold', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          },
+          // Fecha centrada
+          {
+            type: 'text',
+            value: `Fecha: ${format(new Date(cajaSeleccionada.fechaCierre || new Date()), 'dd/MM/yyyy HH:mm', { locale: es })}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0 0 2px 0'
+            }
+          },
+          // Línea divisoria
+          {
+            type: 'text',
+            value: '--------------------------------',
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          },
+          // Información de la caja
+          {
+            type: 'text',
+            value: `Caja #${cajaSeleccionada.cajaEnteroId}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '100%',
+              display: 'block',
+              alignment: 'left',
+              margin: '2px 0 0 0'
+            }
+          },
+          // Usuario y Apertura separados en dos líneas
+          {
+            type: 'text',
+            value: `Usuario: ${cajaSeleccionada.usuario}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '100%',
+              display: 'block',
+              alignment: 'left',
+              margin: '0'
+            }
+          },
+          {
+            type: 'text',
+            value: `Apertura: ${format(new Date(cajaSeleccionada.fechaApertura), 'dd/MM/yyyy HH:mm', { locale: es })}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '100%',
+              display: 'block',
+              alignment: 'left',
+              margin: '0'
+            }
+          }
         ];
         
-        // Agregar retiros si la caja está cerrada
-        if (!estaAbierta) {
-          ticketLines.push(`-`.repeat(32));
-          ticketLines.push(`RETIROS`);
-          ticketLines.push(`Guaraníes: ${formatearMontoConSeparadores(totalRetirosPYG)}`);
-          ticketLines.push(`Reales: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRetirosBRL)}`);
-          ticketLines.push(`Dólares: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRetirosUSD)}`);
+        // Agregar fecha de cierre si la caja está cerrada
+        if (cajaSeleccionada.fechaCierre) {
+          htmlContent.push({
+            type: 'text',
+            value: `Cierre: ${format(new Date(cajaSeleccionada.fechaCierre), 'dd/MM/yyyy HH:mm', { locale: es })}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '100%',
+              display: 'block',
+              alignment: 'left',
+              margin: '0 0 2px 0'
+            }
+          });
         }
         
-        // Agregar diferencias si la caja está cerrada y hay diferencias
-        if (!estaAbierta && diferenciasEfectivo) {
-          ticketLines.push(`-`.repeat(32));
-          ticketLines.push(`DIFERENCIAS`);
-          if (diferenciaTotal !== undefined) {
-            const diferenciaFormatted = formatearMontoConSeparadores(diferenciaTotal);
-            ticketLines.push(`Diferencia Total: ${diferenciaFormatted}`);
+        // Línea divisoria
+        htmlContent.push({
+          type: 'text',
+          value: '--------------------------------',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '0'
           }
+        });
+        
+        // Título de saldos de apertura centrado
+        htmlContent.push({
+          type: 'text',
+          value: 'SALDOS DE APERTURA',
+          style: { 
+            fontSize: '13px', 
+            fontWeight: 'bold', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '2px 0 2px 0'
+          }
+        });
+        
+        // Verificar si la caja está abierta
+        const estaAbierta = cajaSeleccionada.estado === 'abierta';
+        
+        // Montos de apertura - Guaraníes
+        htmlContent.push({
+          type: 'text',
+          value: 'Guaranies:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: `${formatearMontoConSeparadores(cajaSeleccionada.saldoInicial?.total?.PYG || 0)}`,
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0'
+          }
+        });
+        
+        // Montos de apertura - Reales
+        htmlContent.push({
+          type: 'text',
+          value: 'Reales:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoInicial?.total?.BRL || 0)}`,
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0'
+          }
+        });
+        
+        // Montos de apertura - Dólares
+        htmlContent.push({
+          type: 'text',
+          value: 'Dolares:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoInicial?.total?.USD || 0)}`,
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0 0 2px 0'
+          }
+        });
+        
+        // Línea divisoria
+        htmlContent.push({
+          type: 'text',
+          value: '--------------------------------',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '0'
+          }
+        });
+        
+        // Título de saldos de cierre centrado
+        htmlContent.push({
+          type: 'text',
+          value: 'SALDOS DE CIERRE',
+          style: { 
+            fontSize: '13px', 
+            fontWeight: 'bold', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '2px 0 2px 0'
+          }
+        });
+        
+        // Montos de cierre - Guaraníes
+        htmlContent.push({
+          type: 'text',
+          value: 'Guaranies:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: `${!estaAbierta ? formatearMontoConSeparadores(cajaSeleccionada.saldoFinal?.total?.PYG || 0) : '0'}`,
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0'
+          }
+        });
+        
+        // Montos de cierre - Reales
+        htmlContent.push({
+          type: 'text',
+          value: 'Reales:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: `${!estaAbierta ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoFinal?.total?.BRL || 0) : '0,00'}`,
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0'
+          }
+        });
+        
+        // Montos de cierre - Dólares
+        htmlContent.push({
+          type: 'text',
+          value: 'Dolares:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: `${!estaAbierta ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cajaSeleccionada.saldoFinal?.total?.USD || 0) : '0.00'}`,
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0 0 2px 0'
+          }
+        });
+        
+        // Línea divisoria
+        htmlContent.push({
+          type: 'text',
+          value: '--------------------------------',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '0'
+          }
+        });
+        
+        // Agregar RETIROS si no está abierta
+        if (!estaAbierta) {
+          // Título de retiros centrado
+          htmlContent.push({
+            type: 'text',
+            value: 'RETIROS',
+            style: { 
+              fontSize: '12px', 
+              fontWeight: 'bold', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          });
+          
+          // Montos de retiros - Guaraníes
+          htmlContent.push({
+            type: 'text',
+            value: 'Guaranies:',
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '50%',
+              display: 'inline-block',
+              alignment: 'left',
+              margin: '0'
+            }
+          });
+          htmlContent.push({
+            type: 'text',
+            value: `${formatearMontoConSeparadores(totalRetirosPYG)}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'right', 
+              width: '50%',
+              display: 'inline-block',
+              alignment: 'right',
+              margin: '0'
+            }
+          });
+          
+          // Montos de retiros - Reales
+          htmlContent.push({
+            type: 'text',
+            value: 'Reales:',
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '50%',
+              display: 'inline-block',
+              alignment: 'left',
+              margin: '0'
+            }
+          });
+          htmlContent.push({
+            type: 'text',
+            value: `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRetirosBRL)}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'right', 
+              width: '50%',
+              display: 'inline-block',
+              alignment: 'right',
+              margin: '0'
+            }
+          });
+          
+          // Montos de retiros - Dólares
+          htmlContent.push({
+            type: 'text',
+            value: 'Dolares:',
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'left', 
+              width: '50%',
+              display: 'inline-block',
+              alignment: 'left',
+              margin: '0'
+            }
+          });
+          htmlContent.push({
+            type: 'text',
+            value: `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRetirosUSD)}`,
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'right', 
+              width: '50%',
+              display: 'inline-block',
+              alignment: 'right',
+              margin: '0 0 2px 0'
+            }
+          });
+          
+          // Línea divisoria
+          htmlContent.push({
+            type: 'text',
+            value: '--------------------------------',
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          });
         }
         
-        // Agregar diferencias de servicios si la caja está cerrada y hay diferencias
-        if (!estaAbierta && diferenciasServicios && diferenciasServicios.length > 0) {
-          ticketLines.push(`DIFERENCIAS SERVICIOS`);
-          diferenciasServicios
-            .filter((servicio: any) => servicio.servicio !== 'Efectivo')
-            .forEach((servicio: any) => {
-              const diferenciaFormatted = formatearMontoConSeparadores(servicio.diferencia);
-              ticketLines.push(`${servicio.servicio}: ${diferenciaFormatted}`);
+        // Agregar DIFERENCIAS si hay diferencias y no está abierta
+        if (!estaAbierta && diferenciasEfectivo) {
+          // Título de diferencias centrado
+          htmlContent.push({
+            type: 'text',
+            value: 'DIFERENCIAS',
+            style: { 
+              fontSize: '12px', 
+              fontWeight: 'bold', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          });
+          
+          // Diferencia total si existe
+          if (diferenciaTotal !== undefined) {
+            htmlContent.push({
+              type: 'text',
+              value: 'Diferencia Total:',
+              style: { 
+                fontSize: '12px', 
+                textAlign: 'left', 
+                width: '50%',
+                display: 'inline-block',
+                alignment: 'left',
+                margin: '0'
+              }
             });
+            htmlContent.push({
+              type: 'text',
+              value: `${formatearMontoConSeparadores(diferenciaTotal)}`,
+              style: { 
+                fontSize: '12px', 
+                textAlign: 'right', 
+                width: '50%',
+                display: 'inline-block',
+                alignment: 'right',
+                margin: '0'
+              }
+            });
+          }
+          
+          // DIFERENCIAS SERVICIOS
+          if (diferenciasServicios && diferenciasServicios.length > 0) {
+            htmlContent.push({
+              type: 'text',
+              value: 'DIFERENCIAS SERVICIOS',
+              style: { 
+                fontSize: '12px', 
+                fontWeight: 'bold', 
+                textAlign: 'center', 
+                width: '100%',
+                display: 'block',
+                alignment: 'center',
+                margin: '0'
+              }
+            });
+            
+            // Recorrer las diferencias de servicios excepto Efectivo
+            diferenciasServicios
+              .filter((servicio: any) => servicio.servicio !== 'Efectivo')
+              .forEach((servicio: any) => {
+                const nombreServicio = servicio.servicio.includes('Mini') ? 'Minicarga' : 
+                                     servicio.servicio.includes('Maxi') ? 'Maxicarga' :
+                                     servicio.servicio.includes('Tigo') ? 'Tigo Money' :
+                                     servicio.servicio.includes('Billetera Personal') ? 'Billetera Personal' :
+                                     servicio.servicio.includes('Recarga Claro') ? 'Recarga Claro' :
+                                     servicio.servicio.includes('Billetera Claro') ? 'Billetera Claro' :
+                                     servicio.servicio;
+                
+                htmlContent.push({
+                  type: 'text',
+                  value: `${nombreServicio}:`,
+                  style: { 
+                    fontSize: '12px', 
+                    textAlign: 'left', 
+                    width: '50%',
+                    display: 'inline-block',
+                    alignment: 'left',
+                    margin: '0'
+                  }
+                });
+                htmlContent.push({
+                  type: 'text',
+                  value: `${formatearMontoConSeparadores(servicio.diferencia)}`,
+                  style: { 
+                    fontSize: '12px', 
+                    textAlign: 'right', 
+                    width: '50%',
+                    display: 'inline-block',
+                    alignment: 'right',
+                    margin: '0'
+                  }
+                });
+              });
+          }
+          
+          // Línea divisoria
+          htmlContent.push({
+            type: 'text',
+            value: '--------------------------------',
+            style: { 
+              fontSize: '12px', 
+              textAlign: 'center', 
+              width: '100%',
+              display: 'block',
+              alignment: 'center',
+              margin: '0'
+            }
+          });
         }
         
-        // Agregar firmas
-        ticketLines.push(`-`.repeat(32));
-        ticketLines.push(``);
-        ticketLines.push(``);
-        ticketLines.push(`      Firma Cajero      Firma Supervisor`);
+        // Firmas
+        htmlContent.push({
+          type: 'text',
+          value: 'Firma Cajero',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'left',
+            margin: '0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: 'Firma Supervisor',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'right', 
+            width: '50%',
+            display: 'inline-block',
+            alignment: 'right',
+            margin: '0'
+          }
+        });
         
-        // Agregar pie de página
-        ticketLines.push(``);
-        ticketLines.push(`Impreso el: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: es })}`);
+        // Espacio antes del QR
+        htmlContent.push({
+          type: 'text',
+          value: ' ',
+          style: { 
+            fontSize: '10px', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '5px 0'
+          }
+        });
         
-        // Filtrar líneas vacías
-        const filteredLines = ticketLines.filter(line => line !== '');
+        // Agregar código QR con datos de la caja
+        const qrData = JSON.stringify({
+          caja: cajaSeleccionada.cajaEnteroId,
+          fecha: format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: es }),
+          sucursal: cajaSeleccionada.sucursal?.nombre || 'CENTRAL',
+          usuario: cajaSeleccionada.usuario,
+          diferenciaTotal
+        });
+        
+        // Añadir código QR - con style mínimo para satisfacer TypeScript
+        htmlContent.push({
+          type: 'qrCode',
+          value: qrData,
+          style: {
+            fontSize: '0px',
+            textAlign: 'center',
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '0'
+          }
+        });
+        
+        // Espacio después del QR
+        htmlContent.push({
+          type: 'text',
+          value: ' ',
+          style: { 
+            fontSize: '10px', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '5px 0'
+          }
+        });
+        
+        // Fecha de impresión
+        htmlContent.push({
+          type: 'text',
+          value: `Impreso el: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: es })}`,
+          style: { 
+            fontSize: '10px', 
+            textAlign: 'center', 
+            width: '100%',
+            display: 'block',
+            alignment: 'center',
+            margin: '0'
+          }
+        });
         
         // Crear el objeto TicketContent para imprimir
         const ticketContent = {
-          header: 'COMPROBANTE DE CIERRE',
-          lines: filteredLines.slice(1), // Excluir el header ya que lo pasamos separado
-          footer: `Gracias por su preferencia`
+          lines: [],  // No usamos lines porque pasamos htmlContent directamente
+          htmlContent: htmlContent
         };
         
         // Intentar imprimir usando la impresora térmica

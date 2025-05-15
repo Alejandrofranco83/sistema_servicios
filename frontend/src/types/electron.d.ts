@@ -84,4 +84,5 @@ interface TicketContent {
   barcode?: string;
   total?: string;
   footer?: string;
+  htmlContent?: any[];
 } 

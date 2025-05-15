@@ -65,6 +65,56 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ open, onClose, retiro, ca
   const fechaFormateada = fecha.toLocaleDateString('es-PY');
   const horaFormateada = fecha.toLocaleTimeString('es-PY');
   
+  // Función para imprimir el ticket usando la impresora térmica
+  const imprimirTicket = async () => {
+    try {
+      // Importar dinámicamente el servicio
+      const module = await import('../../../services/ElectronPrinterService');
+      const electronPrinterService = module.default;
+
+      // Crear un ticket simple sin formateo complejo
+      const ticketContent = {
+        header: 'COMPROBANTE DE RETIRO',
+        lines: [
+          '--------------------------------',
+          `N°: ${numeroCorto}`,
+          `CAJA: ${cajaId}`,
+          `FECHA: ${fechaFormateada}`,
+          `HORA: ${horaFormateada}`,
+          '--------------------------------',
+          `ENTREGADO A: ${retiro.personaNombre}`,
+          '',
+          retiro.montoPYG > 0 ? `GUARANIES: ${formatearMontoConSeparadores(retiro.montoPYG)}` : '',
+          retiro.montoBRL > 0 ? `REALES: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoBRL)}` : '',
+          retiro.montoUSD > 0 ? `DOLARES: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoUSD)}` : '',
+          '',
+          retiro.observacion ? '--------------------------------' : '',
+          retiro.observacion ? 'OBSERVACION:' : '',
+          retiro.observacion ? retiro.observacion : '',
+          '',
+          '--------------------------------',
+          '',
+          '______________________________',
+          'Firma'
+        ].filter(line => line !== ''),
+        footer: `Impreso: ${new Date().toLocaleString('es-PY')}`
+      };
+
+      // Intentar imprimir
+      const printResult = await electronPrinterService.printTicket(ticketContent);
+      
+      if (!printResult.success) {
+        console.error('Error al imprimir con impresora térmica:', printResult.error);
+        // Si falla la impresión térmica, usar la impresión del navegador
+        window.print();
+      }
+    } catch (error) {
+      console.error('Error al preparar la impresión térmica:', error);
+      // En caso de error, usar la impresión del navegador
+      window.print();
+    }
+  };
+  
   return (
     <Dialog
       open={open}
@@ -146,7 +196,7 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ open, onClose, retiro, ca
           variant="contained" 
           color="primary" 
           size="small"
-          onClick={() => window.print()}
+          onClick={imprimirTicket}
         >
           Imprimir
         </Button>

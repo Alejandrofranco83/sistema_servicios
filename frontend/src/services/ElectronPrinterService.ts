@@ -15,6 +15,7 @@ interface TicketContent {
   barcode?: string;
   total?: string;
   footer?: string;
+  htmlContent?: any[]; // Permite pasar contenido HTML personalizado directamente
 }
 
 interface PrintResult {
