@@ -45,6 +45,7 @@ interface Persona {
   nombreCompleto: string;
   documento?: string;
   telefono?: string;
+  tipo?: string; // Añadir el tipo para poder filtrar Funcionario y Vip
   // Añadir otros campos si son devueltos por la API y necesarios
 }
 
@@ -406,6 +407,9 @@ const ResumenMensual: React.FC = () => {
   const [finalizando, setFinalizando] = useState<boolean>(false);
   const [errorFinalizacion, setErrorFinalizacion] = useState<string | null>(null);
 
+  // Estado para el texto de búsqueda de personas
+  const [personaInputValue, setPersonaInputValue] = useState<string>('');
+
   // --- Carga de datos --- 
 
   // Cargar Personas (Funcionarios)
@@ -415,13 +419,20 @@ const ResumenMensual: React.FC = () => {
         setFetchPersonasError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get<Persona[]>('/api/personas/funcionarios', {
+            // Modificar para usar el mismo endpoint que en CajasContext
+            const response = await axios.get<Persona[]>('/api/personas', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setPersonas(response.data);
+            
+            // Filtrar solo funcionarios y VIP
+            const personasElegibles = response.data.filter(
+              (persona) => persona.tipo === 'Funcionario' || persona.tipo === 'Vip'
+            );
+            
+            setPersonas(personasElegibles);
         } catch (error: any) {
-            console.error("Error al cargar las personas (funcionarios):", error);
-            const message = error.response?.data?.message || 'No se pudo cargar la lista de funcionarios.';
+            console.error("Error al cargar las personas (funcionarios y VIP):", error);
+            const message = error.response?.data?.message || 'No se pudo cargar la lista de personas.';
             setFetchPersonasError(message);
             setPersonas([]); // Limpiar en caso de error
         } finally {
@@ -1581,13 +1592,18 @@ const ResumenMensual: React.FC = () => {
               onChange={handlePersonChange}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               loading={loadingPersonas}
-              loadingText="Cargando funcionarios..."
-              noOptionsText={fetchPersonasError ? "Error al cargar" : "No hay funcionarios"}
+              loadingText="Cargando funcionarios y personas VIP..."
+              noOptionsText={fetchPersonasError ? "Error al cargar" : "No hay personas disponibles"}
               size="small"
+              // Controlar el valor de entrada para convertirlo a mayúsculas
+              inputValue={personaInputValue}
+              onInputChange={(event, newInputValue) => {
+                setPersonaInputValue(newInputValue.toUpperCase());
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Seleccionar Persona"
+                  label="Seleccionar Persona (Funcionario o VIP)"
                   variant="outlined"
                   InputProps={{
                     ...params.InputProps,
@@ -1598,6 +1614,8 @@ const ResumenMensual: React.FC = () => {
                       </React.Fragment>
                     ),
                   }}
+                  // Seleccionar todo el texto al hacer clic
+                  onFocus={(event) => event.target.select()}
                 />
               )}
             />
@@ -2164,7 +2182,7 @@ const ResumenMensual: React.FC = () => {
        )}
        {!loadingPersonas && personas.length === 0 && !fetchPersonasError && (
          <Typography sx={{ mt: 2, textAlign: 'center' }}>
-           No se encontraron funcionarios para seleccionar.
+           No se encontraron funcionarios o personas VIP para seleccionar.
          </Typography>
        )}
 
