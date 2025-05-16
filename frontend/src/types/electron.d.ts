@@ -63,6 +63,11 @@ declare global {
         success: boolean;
         error?: string;
       }>;
+      printTest: () => Promise<{
+        success: boolean;
+        error?: string;
+        message?: string;
+      }>;
     }
   }
 }

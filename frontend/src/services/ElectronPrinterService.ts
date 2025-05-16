@@ -130,48 +130,17 @@ class ElectronPrinterService {
         };
       }
 
-      // Obtener la configuración actual
-      const configResult = await this.getPrinterConfig();
-      if (!configResult.success || !configResult.config) {
-        return {
-          success: false,
-          error: 'No hay configuración de impresora disponible'
-        };
+      // Llamar directamente a la nueva función printTest del preload
+      const result = await window.printerAPI.printTest();
+      
+      // La función printTest en preload.js ya debería devolver { success: boolean, error?: string, message?: string }
+      // Adaptamos la respuesta si es necesario o asumimos que es compatible con PrintResult
+      if (result.success) {
+        return { success: true }; // Opcionalmente, puedes pasar result.message si lo añades a PrintResult
+      } else {
+        return { success: false, error: result.error || 'Error desconocido en prueba de impresión desde preload' };
       }
-      
-      const config = configResult.config;
-      
-      // Verificar que se haya seleccionado una impresora
-      if (!config.printerName) {
-        return {
-          success: false,
-          error: 'No se ha seleccionado ninguna impresora'
-        };
-      }
-      
-      // Crear ticket de prueba
-      const now = new Date();
-      const testTicket: TicketContent = {
-        header: 'PRUEBA DE IMPRESIÓN',
-        lines: [
-          'Sistema de Servicios',
-          '-'.repeat(32),
-          `Impresora: ${config.printerName}`,
-          `Fecha: ${now.toLocaleDateString()}`,
-          `Hora: ${now.toLocaleTimeString()}`,
-          '-'.repeat(32),
-          'Esta es una prueba de impresión',
-          'utilizando electron-pos-printer'
-        ],
-        total: '0 Gs.',
-        barcode: '12345678',
-        qr: 'https://sistemaservicios.com',
-        footer: 'Fin de la prueba'
-      };
-      
-      // Enviar a imprimir
-      const result = await this.printTicket(testTicket);
-      return result;
+
     } catch (error) {
       console.error('Error al realizar prueba de impresión:', error);
       return { 

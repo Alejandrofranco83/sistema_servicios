@@ -40,7 +40,6 @@ import {
   Close as CloseIcon,
   MonetizationOn as MonetizationOnIcon,
   Payment as PaymentIcon,
-  Print as PrintIcon,
   FilterAlt as FilterAltIcon
 } from '@mui/icons-material';
 import { useCajas } from './CajasContext';
@@ -79,7 +78,6 @@ const Cajas: React.FC = () => {
     handleVerApertura,
     handleVerMovimientos,
     handlePagos,
-    handleImprimirResumen,
     listaRetirosDialogOpen,
     setListaRetirosDialogOpen,
     operacionesBancariasDialogOpen,
@@ -568,25 +566,6 @@ const Cajas: React.FC = () => {
                         >
                           <CloseIcon fontSize="small" />
                         </IconButton>
-                      </Tooltip>
-                      
-                      <Tooltip title="Imprimir Resumen">
-                        <span>
-                        <IconButton 
-                          size="small" 
-                          color="default"
-                          sx={{ 
-                            bgcolor: 'primary.main',
-                            '&:hover': {
-                              bgcolor: 'primary.dark'
-                            }
-                          }}
-                          onClick={() => handleImprimirResumen(caja)}
-                            disabled={caja.estado === 'abierta'} 
-                        >
-                          <PrintIcon fontSize="small" sx={{ color: 'white' }} />
-                        </IconButton>
-                        </span>
                       </Tooltip>
                     </TableCell>
                   </TableRow>

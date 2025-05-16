@@ -71,46 +71,200 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ open, onClose, retiro, ca
       // Importar dinámicamente el servicio
       const module = await import('../../../services/ElectronPrinterService');
       const electronPrinterService = module.default;
+      
+      // Obtener la configuración de la impresora para asegurar la impresión silenciosa
+      const configResult = await electronPrinterService.getPrinterConfig();
+      let printerOptions = {};
+      if (configResult.success && configResult.config) {
+        printerOptions = {
+          ...configResult.config,
+          preview: false, // Forzar que no haya vista previa
+          silent: true    // Forzar impresión silenciosa
+        };
+      }
 
-      // Crear un ticket simple sin formateo complejo
+      // Crear contenido HTML para la impresora térmica, similar a la vista previa
+      const htmlContent = [
+        // Título
+        {
+          type: 'text',
+          value: 'COMPROBANTE DE RETIRO',
+          style: { 
+            fontSize: '18px',
+            fontWeight: '700',
+            textAlign: 'center', 
+            margin: '0 0 10px 0'
+          }
+        },
+        // Datos del comprobante
+        {
+          type: 'text',
+          value: `N°: ${numeroCorto}`,
+          style: { fontSize: '12px', textAlign: 'left', margin: '0 0 2px 0' }
+        },
+        {
+          type: 'text',
+          value: `CAJA: ${cajaId}`,
+          style: { fontSize: '12px', textAlign: 'left', margin: '0 0 2px 0' }
+        },
+        {
+          type: 'text',
+          value: `FECHA: ${fechaFormateada}`,
+          style: { fontSize: '12px', textAlign: 'left', margin: '0 0 2px 0' }
+        },
+        {
+          type: 'text',
+          value: `HORA: ${horaFormateada}`,
+          style: { fontSize: '12px', textAlign: 'left', margin: '0 0 10px 0' }
+        },
+        // Línea divisoria
+        {
+          type: 'text',
+          value: '--------------------------------',
+          style: { fontSize: '12px', textAlign: 'center', margin: '5px 0' }
+        },
+        // Entregado A
+        {
+          type: 'text',
+          value: `ENTREGADO A: ${retiro.personaNombre}`,
+          style: { 
+            fontSize: '14px', 
+            fontWeight: '700',
+            textAlign: 'left', 
+            margin: '5px 0 10px 0'
+          }
+        },
+        // Línea divisoria
+        {
+          type: 'text',
+          value: '--------------------------------',
+          style: { fontSize: '12px', textAlign: 'center', margin: '5px 0' }
+        }
+      ];
+
+      // Agregar montos si existen
+      if (retiro.montoPYG > 0) {
+        htmlContent.push({
+          type: 'text',
+          value: `GUARANIES: ${formatearMontoConSeparadores(retiro.montoPYG)} G$`,
+          style: { 
+            fontSize: '14px', 
+            fontWeight: '700',
+            textAlign: 'left', 
+            margin: '5px 0 2px 0'
+          }
+        });
+      }
+
+      if (retiro.montoBRL > 0) {
+        htmlContent.push({
+          type: 'text',
+          value: `REALES: R$ ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoBRL)}`,
+          style: { 
+            fontSize: '14px', 
+            fontWeight: '700',
+            textAlign: 'left', 
+            margin: '2px 0 2px 0'
+          }
+        });
+      }
+
+      if (retiro.montoUSD > 0) {
+        htmlContent.push({
+          type: 'text',
+          value: `DOLARES: U$D ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoUSD)}`,
+          style: { 
+            fontSize: '14px', 
+            fontWeight: '700',
+            textAlign: 'left', 
+            margin: '2px 0 10px 0'
+          }
+        });
+      }
+
+      // Agregar observación si existe
+      if (retiro.observacion) {
+        htmlContent.push({
+          type: 'text',
+          value: '--------------------------------',
+          style: { fontSize: '12px', textAlign: 'center', margin: '5px 0' }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: 'OBSERVACIÓN:',
+          style: { 
+            fontSize: '12px', 
+            textAlign: 'left', 
+            margin: '5px 0 2px 0'
+          }
+        });
+        htmlContent.push({
+          type: 'text',
+          value: retiro.observacion,
+          style: { fontSize: '12px', textAlign: 'left', margin: '0 0 10px 0' }
+        });
+      }
+
+      // Espacio para firma
+      htmlContent.push({
+        type: 'text',
+        value: '--------------------------------',
+        style: { 
+          fontSize: '12px', 
+          textAlign: 'center', 
+          margin: '20px 0 5px 0'
+        }
+      });
+      htmlContent.push({
+        type: 'text',
+        value: '______________________________',
+        style: { 
+          fontSize: '12px', 
+          textAlign: 'center', 
+          margin: '0'
+        }
+      });
+      htmlContent.push({
+        type: 'text',
+        value: 'Firma',
+        style: { 
+          fontSize: '12px', 
+          textAlign: 'center', 
+          margin: '0'
+        }
+      });
+
+      // Pie de página (Impreso el)
+      htmlContent.push({
+        type: 'text',
+        value: `Impreso: ${new Date().toLocaleString('es-PY')}`,
+        style: {
+          fontSize: '10px',
+          textAlign: 'center',
+          margin: '10px 0 0 0'
+        }
+      });
+      
+      // Preparar objeto para imprimir, pasando las opciones modificadas
       const ticketContent = {
-        header: 'COMPROBANTE DE RETIRO',
-        lines: [
-          '--------------------------------',
-          `N°: ${numeroCorto}`,
-          `CAJA: ${cajaId}`,
-          `FECHA: ${fechaFormateada}`,
-          `HORA: ${horaFormateada}`,
-          '--------------------------------',
-          `ENTREGADO A: ${retiro.personaNombre}`,
-          '',
-          retiro.montoPYG > 0 ? `GUARANIES: ${formatearMontoConSeparadores(retiro.montoPYG)}` : '',
-          retiro.montoBRL > 0 ? `REALES: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoBRL)}` : '',
-          retiro.montoUSD > 0 ? `DOLARES: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(retiro.montoUSD)}` : '',
-          '',
-          retiro.observacion ? '--------------------------------' : '',
-          retiro.observacion ? 'OBSERVACION:' : '',
-          retiro.observacion ? retiro.observacion : '',
-          '',
-          '--------------------------------',
-          '',
-          '______________________________',
-          'Firma'
-        ].filter(line => line !== ''),
-        footer: `Impreso: ${new Date().toLocaleString('es-PY')}`
+        lines: [], 
+        htmlContent: htmlContent,
+        // Aquí pasamos las opciones directamente. 
+        // La función printReceipt en preload.js las usará.
+        options: printerOptions 
       };
 
       // Intentar imprimir
+      // La función printTicket ahora debería usar las options que le pasamos
+      // y estas a su vez deberían ser recogidas por printReceipt en preload.js
       const printResult = await electronPrinterService.printTicket(ticketContent);
       
       if (!printResult.success) {
         console.error('Error al imprimir con impresora térmica:', printResult.error);
-        // Si falla la impresión térmica, usar la impresión del navegador
-        window.print();
+        window.print(); 
       }
     } catch (error) {
       console.error('Error al preparar la impresión térmica:', error);
-      // En caso de error, usar la impresión del navegador
       window.print();
     }
   };
