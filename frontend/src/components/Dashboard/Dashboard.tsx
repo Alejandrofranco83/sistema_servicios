@@ -48,6 +48,7 @@ import {
   Category as CategoryIcon,
   Notifications as NotificationsIcon,
   Print as PrintIcon,
+  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import Usuarios from '../Usuarios/Usuarios';
@@ -152,10 +153,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
   };
 
   const handleToggleSubMenu = (itemText: string) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [itemText]: !prev[itemText]
-    }));
+    // Si el sidebar está cerrado, primero lo abrimos
+    if (!open) {
+      setOpen(true);
+      // Programar la expansión del submenú después de abrir el sidebar
+      setTimeout(() => {
+        // Expandir el elemento seleccionado y contraer todos los demás
+        const newExpandedState: { [key: string]: boolean } = {};
+        // Establecer todos los elementos como contraídos
+        menuItems.forEach(item => {
+          if (item.isExpandable) {
+            newExpandedState[item.text] = false;
+          }
+        });
+        // Expandir solo el elemento seleccionado (toggle)
+        newExpandedState[itemText] = !expandedItems[itemText];
+        setExpandedItems(newExpandedState);
+      }, 200); // pequeño delay para permitir la animación del sidebar
+    } else {
+      // Comportamiento cuando el sidebar está abierto
+      // Expandir el elemento seleccionado y contraer todos los demás
+      const newExpandedState: { [key: string]: boolean } = {};
+      // Establecer todos los elementos como contraídos
+      menuItems.forEach(item => {
+        if (item.isExpandable) {
+          newExpandedState[item.text] = false;
+        }
+      });
+      // Expandir solo el elemento seleccionado (toggle)
+      newExpandedState[itemText] = !expandedItems[itemText];
+      setExpandedItems(newExpandedState);
+    }
   };
 
   const handleLogoutClick = () => {
@@ -172,11 +200,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
   };
 
   const handleMenuItemClick = (path: string) => {
-    if (path) {
-      // No agregar '/' al inicio, mantener rutas relativas
-      console.log('Navegando a:', path);
+    if (!open) {
+      // Si el sidebar está cerrado, lo abrimos primero
+      setOpen(true);
+    } else if (path) {
+      // Solo navegamos si el sidebar está abierto y hay una ruta
       navigate(path);
-      // Contraer el sidebar siempre que se selecciona una página
+      // Contraer el sidebar después de seleccionar una página
       setOpen(false);
     }
   };
@@ -278,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
     },
     { 
       text: 'Controles', 
-      icon: <PointOfSaleIcon />, 
+      icon: <AssessmentIcon />, 
       path: '', 
       isExpandable: true,
       requiredModule: 'PDV',
@@ -544,7 +574,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
             }}
           />
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Sistema de Servicios
+            Sistema de Servicios <Typography variant="caption" sx={{ ml: 1, opacity: 0.8 }}>v1.0.0</Typography>
           </Typography>
           
           {user && (
@@ -558,17 +588,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
 
           {/* Indicador de estado del servidor */}
           <ServerStatusIndicator />
-          
-          {/* Botón de ayuda/diagnóstico */}
-          <Tooltip title="Herramientas de diagnóstico">
-            <IconButton
-              color="inherit"
-              onClick={() => navigate('/notificaciones/test')}
-              sx={{ ml: 1 }}
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Tooltip>
           
           <IconButton color="inherit" onClick={handleLogoutClick}>
             <LogoutIcon />
@@ -670,6 +689,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onToggleTheme, isDarkMode }) => {
                           sx={{
                             pl: 3,
                             minHeight: 36,
+                            backgroundColor: theme.palette.mode === 'dark' 
+                              ? 'rgba(255, 255, 255, 0.05)' 
+                              : 'rgba(0, 0, 0, 0.03)',
+                            '&:hover': {
+                              backgroundColor: theme.palette.mode === 'dark' 
+                                ? 'rgba(255, 255, 255, 0.1)' 
+                                : 'rgba(0, 0, 0, 0.06)',
+                            }
                           }}
                         >
                           <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>

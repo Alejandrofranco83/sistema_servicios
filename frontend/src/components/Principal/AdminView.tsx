@@ -63,7 +63,7 @@ interface MovimientoDia {
 const AdminView: React.FC<AdminViewProps> = ({ hasPermission }) => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { convertirDolaresAGuaranies, convertirRealesAGuaranies } = useCotizacion();
+  const { convertirDolaresAGuaranies, convertirRealesAGuaranies, cotizacionVigente } = useCotizacion();
   
   // Estado para el saldo de caja mayor
   const [cargandoSaldo, setCargandoSaldo] = useState<boolean>(true);
@@ -491,13 +491,24 @@ const AdminView: React.FC<AdminViewProps> = ({ hasPermission }) => {
             }}
           >
             <Typography variant="h6" gutterBottom>
-              Movimientos
+              Cotización Vigente
             </Typography>
-            <Typography variant="h3" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              {estadisticas.movimientosDiarios}
-            </Typography>
+            {cotizacionVigente && cotizacionVigente.valorDolar ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  USD: Gs. {formatCurrency(cotizacionVigente.valorDolar)}
+                </Typography>
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  BRL: Gs. {formatCurrency(cotizacionVigente.valorReal)}
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexGrow: 1 }}>
+                <CircularProgress size={30} color="success" />
+              </Box>
+            )}
             <Typography variant="body2">
-              Operaciones registradas hoy
+              Valores actuales
             </Typography>
           </Paper>
         </Grid>
@@ -526,7 +537,7 @@ const AdminView: React.FC<AdminViewProps> = ({ hasPermission }) => {
               {estadisticas.pendientesConciliacion}
             </Typography>
             <Typography variant="body2">
-              Cajas pendientes de conciliación
+              En construcción
             </Typography>
           </Paper>
         </Grid>
